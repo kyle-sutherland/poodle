@@ -30,9 +30,9 @@ def main():
         while True:
             data = q.get()
             if rec.AcceptWaveform(data):
-                print(rec.Result())
-            else:
-                print(rec.PartialResult())
+                print(rec.FinalResult())
+            # else:
+            #     print(rec.PartialResult())
             if dump_fn is not None:
                 dump_fn.write(data)
 
