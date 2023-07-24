@@ -13,6 +13,7 @@ from vosk import Model, KaldiRecognizer
 
 q = queue.Queue()
 
+
 def int_or_str(text):
     """Helper function for argument parsing."""
     try:
@@ -20,11 +21,13 @@ def int_or_str(text):
     except ValueError:
         return text
 
+
 def callback(indata, frames, time, status):
     """This is called (from a separate thread) for each audio block."""
     if status:
         print(status, file=sys.stderr)
     q.put(bytes(indata))
+
 
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument(
@@ -55,7 +58,7 @@ try:
         device_info = sd.query_devices(args.device, "input")
         # soundfile expects an int, sounddevice provides a float:
         args.samplerate = int(device_info["default_samplerate"])
-        
+
     if args.model is None:
         model = Model(lang="en-us")
     else:
@@ -66,8 +69,8 @@ try:
     else:
         dump_fn = None
 
-    with sd.RawInputStream(samplerate=args.samplerate, blocksize = 8000, device=args.device,
-            dtype="int16", channels=1, callback=callback):
+    with sd.RawInputStream(samplerate=args.samplerate, blocksize=8000, device=args.device,
+                           dtype="int16", channels=1, callback=callback):
         print("#" * 80)
         print("Press Ctrl+C to stop the recording")
         print("#" * 80)
@@ -87,3 +90,4 @@ except KeyboardInterrupt:
     parser.exit(0)
 except Exception as e:
     parser.exit(type(e).__name__ + ": " + str(e))
+
