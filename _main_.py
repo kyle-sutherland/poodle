@@ -18,7 +18,7 @@ def main():
     model = Model(lang='en-us')
     device_info = sd.query_devices(None, "input")
     samplerate = int(device_info["default_samplerate"])
-    dump_fn = open("dump.wav", "wb")
+    dump_fn = open("audio_dumps/dump.wav", "wb")
 
     with sd.RawInputStream(samplerate=samplerate, blocksize=8000, device=None, dtype="int16", channels=1,
                            callback=callback):
