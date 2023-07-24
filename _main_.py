@@ -19,6 +19,7 @@ def main():
     device_info = sd.query_devices(None, "input")
     samplerate = int(device_info["default_samplerate"])
     dump_fn = open("audio_dumps/dump.wav", "wb")
+    keyword = "okay poodle"
 
     with sd.RawInputStream(samplerate=samplerate, blocksize=8000, device=None, dtype="int16", channels=1,
                            callback=callback):
@@ -30,7 +31,11 @@ def main():
         while True:
             data = q.get()
             if rec.AcceptWaveform(data):
-                print(rec.FinalResult())
+                final_result = rec.FinalResult()
+                # print(final_result)
+                if keyword in final_result:
+                    print("KEYWORD!!")
+                    print(final_result)
             # else:
             #     print(rec.PartialResult())
             if dump_fn is not None:
