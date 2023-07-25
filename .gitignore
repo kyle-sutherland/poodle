@@ -1,2 +1,4 @@
 .idea
+.vscode
 audio_dumps/**
+test_audio/**
