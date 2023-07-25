@@ -8,12 +8,15 @@ import pyaudio
 
 
 class AudioFetcher(threading.Thread):
-    def __init__(self, audio_queue, running):
+    def __init__(self, audio_queue, running, channels=1, rate=16000, frames_per_buffer=8000):
         threading.Thread.__init__(self)
         self.audio_queue = audio_queue
         self.running = running
 
         self.pa = pyaudio.PyAudio()
+        self.channels = channels
+        self.rate = rate
+        self.frames_per_buffer = frames_per_buffer
         self.default_device_info = self.pa.get_default_input_device_info()
         self.sample_rate = int(self.default_device_info['defaultSampleRate'])
 
