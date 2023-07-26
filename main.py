@@ -19,22 +19,6 @@ def partial_listener(recognizer, fetcher, result):
     if config.ENABLE_RESULT_LOG:
         print(f"Partial result received: {result}")
 
-    # Check if there's silence
-    if not result.strip() and fetcher.recording:
-        # If a timer already exists, cancel it
-        if recognizer.silence_timer:
-            recognizer.silence_timer.cancel()
-        # Start a new timer that will stop recording after 10 seconds of silence
-        recognizer.silence_timer = threading.Timer(10, fetcher.stop_recording)
-        recognizer.silence_timer.start()
-    elif fetcher.recording:
-        # If speech is detected and recording is ongoing, reset the timer
-        if recognizer.silence_timer:
-            recognizer.silence_timer.cancel()
-            print("still listening")
-        recognizer.silence_timer = threading.Timer(10, fetcher.stop_recording)
-        recognizer.silence_timer.start()
-
 
 def dump_keyword_block(fetcher, data, callback):
     # put whatever code you want here, it will run concurrently with print_keyword_message

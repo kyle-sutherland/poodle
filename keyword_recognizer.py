@@ -15,6 +15,7 @@ class KeywordRecognizer(threading.Thread):
     def __init__(self, keyword, audio_params=None, max_listener_threads=10):
         threading.Thread.__init__(self)
 
+        self.speech_detected_time = None
         self.listeners_finished_time = None
         self.listeners_finished_count = None
         self.keyword_detected_time = None
@@ -51,11 +52,14 @@ class KeywordRecognizer(threading.Thread):
     def get_listeners_finished_count(self):
         return self.listeners_finished_count
 
+    @property
+    def get_speech_detected_time(self):
+        return self.speech_detected_time
+
     def run(self):
         self.start_time = time.time()
         self.fetcher.start()
         try:
-            rec = KaldiRecognizer(self.model, self.sample_rate)
             while self.running.is_set() or not self.audio_queue.empty():
                 self.run_once()
         except Exception as e:
@@ -64,16 +68,23 @@ class KeywordRecognizer(threading.Thread):
     def run_once(self):
         try:
             timestamp, data = self.audio_queue.get(timeout=1)  # 1 second timeout
-            if self.recognizer.AcceptWaveform(data):
-                final_result = self.recognizer.FinalResult()
-                if self.keyword in final_result:
-                    self.keyword_detected_time = time.time()
-                    self.notify_keyword_listeners(data)
-            partial_result = self.recognizer.PartialResult()
-            if partial_result:
-                self.notify_partial_listeners(partial_result)
+            self.recognize_keyword(data)
         except queue.Empty:
             print("Queue is empty.")
+
+    def recognize_keyword(self, data):
+        if self.recognizer.AcceptWaveform(data):
+            final_result = self.recognizer.FinalResult()
+            if self.keyword in final_result:
+                self.keyword_detected_time = time.time()
+                self.notify_keyword_listeners(data)
+
+    def detect_speech_activity(self, data):
+        if self.recognizer.AcceptWaveform(data):
+            result = self.recognizer.PartialResult()
+            if result != "":
+                self.speech_detected_time = time.time()
+                self.notify_partial_listeners(data)
 
     def add_keyword_listener(self, listener_func):
         self.keyword_listeners.append(listener_func)
@@ -95,6 +106,7 @@ class KeywordRecognizer(threading.Thread):
     def notify_partial_listeners(self, result):
         for listener in self.partial_listeners:
             self.executor.submit(listener, result)
+
 
     def close(self):
         self.running.clear()
