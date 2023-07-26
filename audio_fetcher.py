@@ -6,6 +6,8 @@ import wave
 
 import pyaudio
 
+import config
+
 
 class AudioFetcher(threading.Thread):
     def __init__(self, audio_queue, running, channels=1, rate=16000, frames_per_buffer=8000):
@@ -30,7 +32,11 @@ class AudioFetcher(threading.Thread):
 
     def run(self):
         pa = pyaudio.PyAudio()
-        stream = pa.open(format=pyaudio.paInt16, channels=1, rate=self.sample_rate, input=True, frames_per_buffer=8000)
+        stream = pa.open(format=config.PYAUDIO_FORMAT,
+                         channels=config.PYAUDIO_CHANNELS,
+                         rate=self.sample_rate,
+                         input=True,
+                         frames_per_buffer=config.PYAUDIO_FRAMES_PER_BUFFER)
         while self.running.is_set():
             data = stream.read(2000)
             self.audio_queue.put((time.time(), data))
@@ -42,3 +48,6 @@ class AudioFetcher(threading.Thread):
             wf.setsampwidth(pyaudio.get_sample_size(pyaudio.paInt16))
             wf.setframerate(self.sample_rate)
             wf.writeframes(data)
+
+    def stop(self):
+        self.running.clear()
