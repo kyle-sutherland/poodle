@@ -2,3 +2,4 @@
 .vscode
 audio_dumps/**
 test_audio/**
+prompt_bodies_audio/**

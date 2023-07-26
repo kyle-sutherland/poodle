@@ -2,6 +2,7 @@
 
 import threading
 import queue
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 from vosk import Model, KaldiRecognizer
@@ -10,15 +11,21 @@ from audio_fetcher import AudioFetcher
 
 
 class KeywordRecognizer(threading.Thread):
+
     def __init__(self, keyword, audio_params=None, max_listener_threads=10):
         threading.Thread.__init__(self)
 
+        self.listeners_finished_time = None
+        self.listeners_finished_count = None
+        self.keyword_detected_time = None
+        self.start_time = None
         self.wave_file = None
         self.wave_opened = None
         self.keyword = keyword
         self.model = Model(lang='en-us')
         self.audio_queue = queue.Queue()
-        self.listeners = []
+        self.keyword_listeners = []
+        self.partial_listeners = []
         self.running = threading.Event()
         self.running.set()
 
@@ -28,7 +35,24 @@ class KeywordRecognizer(threading.Thread):
         self.executor = ThreadPoolExecutor(max_listener_threads)
         self.recognizer = KaldiRecognizer(self.model, self.sample_rate)
 
+    @property
+    def get_keyword_detected_time(self):
+        return self.keyword_detected_time
+
+    @property
+    def get_start_time(self):
+        return self.start_time
+
+    @property
+    def get_listeners_finished_time(self):
+        return self.listeners_finished_time
+
+    @property
+    def get_listeners_finished_count(self):
+        return self.listeners_finished_count
+
     def run(self):
+        self.start_time = time.time()
         self.fetcher.start()
         try:
             rec = KaldiRecognizer(self.model, self.sample_rate)
@@ -43,19 +67,35 @@ class KeywordRecognizer(threading.Thread):
             if self.recognizer.AcceptWaveform(data):
                 final_result = self.recognizer.FinalResult()
                 if self.keyword in final_result:
-                    self.notify_listeners(data)
+                    self.keyword_detected_time = time.time()
+                    self.notify_keyword_listeners(data)
+            partial_result = self.recognizer.PartialResult()
+            if partial_result:
+                self.notify_partial_listeners(partial_result)
         except queue.Empty:
             print("Queue is empty.")
 
-    def add_listener(self, listener_func):
-        self.listeners.append(listener_func)
+    def add_keyword_listener(self, listener_func):
+        self.keyword_listeners.append(listener_func)
 
-    def notify_listeners(self, data):
-        for listener in self.listeners:
-            self.executor.submit(listener, self.keyword, data)
+    def notify_keyword_listeners(self, data):
+        self.listeners_finished_count = 0
+
+        def listener_callback():
+            self.listeners_finished_count += 1
+            if self.listeners_finished_count >= len(self.keyword_listeners):
+                self.listeners_finished_time = time.time()
+
+        for listener in self.keyword_listeners:
+            self.executor.submit(listener, self.keyword, data, listener_callback)
+
+    def add_partial_listener(self, listener_func):
+        self.partial_listeners.append(listener_func)
+
+    def notify_partial_listeners(self, result):
+        for listener in self.partial_listeners:
+            self.executor.submit(listener, result)
 
     def close(self):
         self.running.clear()
         self.fetcher.stop()  # use the stop method of AudioFetcher
-        if self.wave_opened:
-            self.wave_file.close()
