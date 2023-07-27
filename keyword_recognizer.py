@@ -15,8 +15,6 @@ class KeywordRecognizer(threading.Thread):
     def __init__(self, keyword, audio_params=None, max_listener_threads=10):
         threading.Thread.__init__(self)
 
-        self.listeners_finished_time = None
-        self.listeners_finished_count = None
         self.keyword_detected_time = None
         self.start_time = None
         self.wave_file = None
@@ -43,16 +41,7 @@ class KeywordRecognizer(threading.Thread):
     def get_start_time(self):
         return self.start_time
 
-    @property
-    def get_listeners_finished_time(self):
-        return self.listeners_finished_time
-
-    @property
-    def get_listeners_finished_count(self):
-        return self.listeners_finished_count
-
     def run(self):
-        self.start_time = time.time()
         self.fetcher.start()
         try:
             while self.running.is_set() or not self.audio_queue.empty():
@@ -66,7 +55,6 @@ class KeywordRecognizer(threading.Thread):
             if self.recognizer.AcceptWaveform(data):
                 final_result = self.recognizer.FinalResult()
                 if self.keyword in final_result:
-                    self.keyword_detected_time = time.time()
                     self.notify_keyword_listeners(data)
             partial_result = self.recognizer.PartialResult()
             if partial_result:
@@ -78,22 +66,15 @@ class KeywordRecognizer(threading.Thread):
         self.keyword_listeners.append(listener_func)
 
     def notify_keyword_listeners(self, data):
-        self.listeners_finished_count = 0
-
-        def listener_callback():
-            self.listeners_finished_count += 1
-            if self.listeners_finished_count >= len(self.keyword_listeners):
-                self.listeners_finished_time = time.time()
-
         for listener in self.keyword_listeners:
-            self.executor.submit(listener, self.keyword, data, listener_callback)
+            self.executor.submit(listener, self.keyword, data)
 
     def add_partial_listener(self, listener_func):
         self.partial_listeners.append(listener_func)
 
-    def notify_partial_listeners(self, result):
+    def notify_partial_listeners(self, data):
         for listener in self.partial_listeners:
-            self.executor.submit(listener, result)
+            self.executor.submit(listener, data)
 
     def close(self):
         self.running.clear()
