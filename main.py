@@ -1,23 +1,12 @@
 # main.py
 from keyword_recognizer import KeywordRecognizer
 import time
-import threading
 import config
 
 
-def print_keyword_message(recognizer, fetcher, keyword, data, callback):
+def print_keyword_message(keyword, data, callback):
     print(f"{keyword}!!")
-    if not fetcher.recording:  # Only start recording if not already
-        fetcher.start_recording(time.time())  # Start recording when keyword is detected
-        # Timer to stop recording after 30 seconds
-        threading.Timer(30, fetcher.stop_recording).start()
     callback()
-
-
-def partial_listener(recognizer, fetcher, result):
-
-    if config.ENABLE_RESULT_LOG:
-        print(f"Partial result received: {result}")
 
 
 def dump_keyword_block(fetcher, data, callback):
@@ -44,17 +33,13 @@ def print_performance_info(recognizer):
 
 def main():
     recognizer = KeywordRecognizer("okay poodle")
-    fetcher = recognizer.fetcher
-
-    recognizer.add_keyword_listener(
-        lambda keyword, data, callback: print_keyword_message(recognizer, fetcher, keyword, data, callback))
-    recognizer.add_partial_listener(lambda result: partial_listener(recognizer, fetcher, result))
+    recognizer.add_keyword_listener(print_keyword_message)
 
     if config.ENABLE_DUMP_KEYWORD_BLOCK:
-        recognizer.add_keyword_listener(lambda keyword, data, callback: dump_keyword_block(fetcher, data, callback))
+        recognizer.add_keyword_listener(dump_keyword_block)
 
     if config.ENABLE_PERFORMANCE_LOG:
-        recognizer.add_keyword_listener(lambda keyword, data, callback: print_performance_info(recognizer))
+        recognizer.add_keyword_listener(print_performance_info)
 
     recognizer.start()
 
