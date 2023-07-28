@@ -3,20 +3,28 @@
 import time
 import json
 
+import config
+from silence_watcher import SilenceWatcher
+import state_controller
+from audio_recorder import AudioRecorder
 
-def kwl_print_keyword_message(keyword, stream_write_time):
+silence_watcher = SilenceWatcher()
+audio_recorder = AudioRecorder()
+
+
+def kwl_print_keyword_message(keyword, data, stream_write_time):
     trigger_time = time.time() - stream_write_time
     print(f"Time from stream write to keyword trigger: {trigger_time} seconds")
     print(f"{keyword}!!")
 
 
-def kwl_dump_keyword_block(fetcher, data):
+def kwl_dump_keyword_block(fetcher, keyword, data, stream_write_time):
     # put whatever code you want here, it will run concurrently with print_keyword_message
     fetcher.dump_audio(data)  # Now you can call dump_audio from another_listener
 
 
-def kwl_start_recording_on_keyword(recorder):
-    recorder.start_recording()
+def kwl_start_recording(keyword, data, stream_write_time):
+    audio_recorder.start()
 
 
 def pl_print_all_partials(partial_result):
@@ -31,7 +39,11 @@ def pl_print_active_speech_only(partial_result):
             print(pr[key])
 
 
-def pl_no_speech(kw_detector, partial_result):
+def pl_no_speech(partial_result):
     pr = json.loads(partial_result)
-    no_speech = all(pr[key] == "" for key in pr)
-    kw_detector.check_silence(no_speech)
+    if state_controller.recording.is_set():
+        if silence_watcher.check_silence(pr):
+            state_controller.silence.set()
+            timestamp = time.time()
+            audio_recorder.stop(f"{config.PATH_PROMPT_BODIES_AUDIO}{timestamp}.wav")
+            silence_watcher.reset()

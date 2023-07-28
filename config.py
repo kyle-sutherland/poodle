@@ -1,5 +1,4 @@
 # config.py
-import time
 
 import pyaudio
 
@@ -10,6 +9,6 @@ PYAUDIO_CHANNELS = 1
 PYAUDIO_FRAMES_PER_BUFFER = 8000
 ENABLE_PERFORMANCE_LOG = True
 ENABLE_ALL_PARTIAL_RESULT_LOG = False
-ENABLE_ACTIVE_SPEECH_LOG = False
+ENABLE_ACTIVE_SPEECH_LOG = True
 
-PATH_PROMPT_BODIES_AUDIO = f"prompt_bodies_audio/body_{time.time()}.wav"
+PATH_PROMPT_BODIES_AUDIO = "prompt_bodies_audio/"

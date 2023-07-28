@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from vosk import Model, KaldiRecognizer
 
-from audio_fetcher import AudioFetcher
+from audio_queue_fetcher import AudioQueueFetcher
 
 
 class KeywordDetector(threading.Thread):
@@ -24,7 +24,7 @@ class KeywordDetector(threading.Thread):
         self.running.set()
 
         self.audio_params = audio_params or {}
-        self.fetcher = AudioFetcher(self.audio_queue, self.running, **self.audio_params)
+        self.fetcher = AudioQueueFetcher(self.audio_queue, self.running, **self.audio_params)
         self.sample_rate = self.fetcher.sample_rate
         self.executor = ThreadPoolExecutor(max_listener_threads)
         self.recognizer = KaldiRecognizer(self.model, self.sample_rate)

@@ -7,10 +7,9 @@ import pyaudio
 import config
 
 
-class AudioFetcher(threading.Thread):
-    def __init__(self, audio_queue, running, channels=1, frames_per_buffer=8000):
+class AudioQueueFetcher(threading.Thread):
+    def __init__(self, audio_queue, running, channels=config.PYAUDIO_CHANNELS, frames_per_buffer=8000):
         threading.Thread.__init__(self)
-        self.frames = []
         self.audio_queue = audio_queue
         self.running = running
 
@@ -19,14 +18,6 @@ class AudioFetcher(threading.Thread):
         self.frames_per_buffer = frames_per_buffer
         self.default_device_info = self.pa.get_default_input_device_info()
         self.sample_rate = int(self.default_device_info['defaultSampleRate'])
-
-    @property
-    def get_sample_rate(self):
-        return self.sample_rate
-
-    @property
-    def get_device_info(self):
-        return self.default_device_info
 
     def dump_audio(self, data, filename="audio_dumps/dump.raw"):
         with wave.open(filename, "wb") as wf:
@@ -44,7 +35,9 @@ class AudioFetcher(threading.Thread):
         while self.running.is_set():
             data = stream.read(self.frames_per_buffer)
             self.audio_queue.put((time.time(), data))
+        stream.stop_stream()
         stream.close()
+        self.pa.terminate()
 
     def stop(self):
         self.running.clear()
