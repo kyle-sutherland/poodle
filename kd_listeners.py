@@ -18,11 +18,6 @@ def kwl_print_keyword_message(keyword, data, stream_write_time):
     print(f"{keyword}!!")
 
 
-def kwl_dump_keyword_block(fetcher, keyword, data, stream_write_time):
-    # put whatever code you want here, it will run concurrently with print_keyword_message
-    fetcher.dump_audio(data)  # Now you can call dump_audio from another_listener
-
-
 def kwl_start_recording(keyword, data, stream_write_time):
     audio_recorder.start()
 

@@ -5,28 +5,24 @@ import wave
 
 import config
 import state_controller
+from audio_stream_manager import AudioStreamManager
+
+asm = AudioStreamManager()
 
 
 class AudioRecorder(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
-        self.pa = pyaudio.PyAudio()
-        self.default_device_info = self.pa.get_default_input_device_info()
+        self.default_device_info = asm.input_device_info
         self.sample_rate = int(self.default_device_info['defaultSampleRate'])
+        self.channels = 1
         self.frames = []
-
-    def create_stream(self):
-        stream = self.pa.open(format=config.PYAUDIO_FORMAT,
-                              channels=config.PYAUDIO_CHANNELS,
-                              rate=self.sample_rate, input=True,
-                              frames_per_buffer=1024)
-        return stream
 
     def start_recording(self):
         state_controller.recording.set()
         print("recording started")
         self.frames.clear()
-        stream = self.create_stream()
+        stream = asm.open_input_stream(channels=self.channels, rate=self.sample_rate)
         while state_controller.recording.is_set():
             data = stream.read(1024)
             self.frames.append(data)
@@ -35,7 +31,7 @@ class AudioRecorder(threading.Thread):
         state_controller.recording.clear()
         sound_file = wave.open(filepath, "wb")
         sound_file.setnchannels(config.PYAUDIO_CHANNELS)
-        sound_file.setsampwidth(self.pa.get_sample_size(pyaudio.paInt16))
+        sound_file.setsampwidth(asm.pa.get_sample_size(pyaudio.paInt16))
         sound_file.setframerate(self.sample_rate)
         sound_file.writeframes(b''.join(self.frames))
         print("recording saved")
@@ -44,5 +40,5 @@ class AudioRecorder(threading.Thread):
         self.start_recording()
 
     def stop(self, filepath):
+        asm.close_input_stream(asm.input_streams[1])
         self.stop_recording(filepath)
-
