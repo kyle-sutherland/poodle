@@ -1,34 +1,44 @@
 # main.py
-from keyword_recognizer import KeywordRecognizer
+import queue
+import threading
+
+import kd_listeners
+import silence_watcher
+from audio_fetcher import AudioFetcher
+from keyword_detector import KeywordDetector
 import time
 import config
 
 
-def print_keyword_message(keyword, data):
-    print(f"{keyword}!!")
-
-
-def dump_keyword_block(fetcher, data):
-    # put whatever code you want here, it will run concurrently with print_keyword_message
-    fetcher.dump_audio(data)  # Now you can call dump_audio from another_listener
-
-
 def main():
-    recognizer = KeywordRecognizer("computer")
-    recognizer.add_keyword_listener(print_keyword_message)
+    fetcher = AudioFetcher(queue.Queue(), threading.Event(), channels=config.PYAUDIO_CHANNELS,
+                           frames_per_buffer=config.PYAUDIO_FRAMES_PER_BUFFER)
+
+    kw_detector = KeywordDetector("computer")
+    kw_detector.add_keyword_listener(
+        lambda: kd_listeners.kwl_start_recording_on_keyword(fetcher))
+    kw_detector.add_partial_listener(lambda pr: kd_listeners.pl_no_speech(silence_watcher, pr))
+
+    kw_detector.add_keyword_listener(kd_listeners.kwl_print_keyword_message)
 
     if config.ENABLE_DUMP_KEYWORD_BLOCK:
-        recognizer.add_keyword_listener(dump_keyword_block)
+        kw_detector.add_keyword_listener(kd_listeners.kwl_dump_keyword_block)
 
-    recognizer.start()
+    if config.ENABLE_ALL_PARTIAL_RESULT_LOG:
+        kw_detector.add_partial_listener(kd_listeners.pl_print_all_partials)
+
+    if config.ENABLE_ACTIVE_SPEECH_LOG:
+        kw_detector.add_partial_listener(kd_listeners.pl_print_active_speech_only)
+
+    kw_detector.start()
 
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         print("Closing the program")
-        recognizer.close()
-        recognizer.join()
+        kw_detector.close()
+        kw_detector.join()
 
 
 if __name__ == '__main__':

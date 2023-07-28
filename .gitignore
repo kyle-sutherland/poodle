@@ -1,5 +1,8 @@
 .idea
 .vscode
+.fleet
+.pytest_cache
+.benchmarks
 audio_dumps/**
 test_audio/**
 prompt_bodies_audio/**
