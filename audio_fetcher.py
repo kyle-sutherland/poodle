@@ -8,7 +8,7 @@ import config
 
 
 class AudioFetcher(threading.Thread):
-    def __init__(self, audio_queue, running, channels=1, frames_per_buff er=8000):
+    def __init__(self, audio_queue, running, channels=1, frames_per_buffer=8000):
         threading.Thread.__init__(self)
         self.frames = []
         self.audio_queue = audio_queue
