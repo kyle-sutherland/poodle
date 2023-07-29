@@ -10,6 +10,7 @@ import whisper
 from vosk import Model, KaldiRecognizer
 import threading
 import time
+
 import config
 import event_flags
 from file_manager import FileManager
@@ -47,6 +48,7 @@ class KeywordDetector(threading.Thread):
                 partial_result = self.recognizer.PartialResult()
                 if partial_result:
                     self.notify_partial_listeners(partial_result)
+                time.sleep(0.1)
 
         except queue.Empty:
             print("Queue is empty.")
@@ -119,14 +121,21 @@ class Transcriber:
                     f"{self.transcription_directory}transcription_{file}.json",
                     json.dumps(result, indent=4)
                 )
+                print("transcription complete")
+
+
+    def transcribe_and_start_request(self, chat_session):
+        self.transcribe_bodies()
+        self.do_request(chat_session)
 
     def do_request(self, chat_session):
         transcriptions = FileManager.read_transcriptions(self.transcription_directory)
-        chat_session.add_user_entry(transcriptions)
+        if len(transcriptions) != 0:
+            chat_session.add_user_entry(transcriptions)
         resp = chat_session.send_request()
         timestamp = time.time()
-        FileManager.write_file(f"response_log/response_{timestamp}.json", resp)
         chat_session.add_reply_entry(resp)
+        print(resp["choices"][0]["message"]["content"])
 
 
 class AudioRecorder(threading.Thread):
@@ -168,3 +177,28 @@ class AudioRecorder(threading.Thread):
 
     def stop(self, filepath):
         self.stop_recording(filepath)
+
+
+class SilenceWatcher:
+    def __init__(self, silence_threshold=9, silence_duration=2.3):
+        self.silence_threshold = silence_threshold
+        self.silence_duration = silence_duration
+        self.silence_counter = 0
+        self.silence_start_time = None
+
+    def check_silence(self, pr) -> bool:
+        no_speech = all(pr[key] == "" for key in pr)
+        if no_speech:
+            self.silence_counter += 1
+            if self.silence_counter >= self.silence_threshold:
+                if not self.silence_start_time:
+                    self.silence_start_time = time.time()
+                elif time.time() - self.silence_start_time >= self.silence_duration:
+                    print("silence detected")
+                    return True
+        else:
+            self.reset()
+
+    def reset(self):
+        self.silence_counter = 0
+        self.silence_start_time = None
