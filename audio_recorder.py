@@ -38,7 +38,7 @@ class AudioRecorder(threading.Thread):
         sound_file.setsampwidth(self.pa.get_sample_size(pyaudio.paInt16))
         sound_file.setframerate(self.sample_rate)
         sound_file.writeframes(b''.join(self.frames))
-        print("recording saved")
+        # print("recording saved")
 
     def start(self):
         self.start_recording()

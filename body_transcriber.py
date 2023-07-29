@@ -20,7 +20,7 @@ def transcribe_bodies():
     while len(os.listdir(audio_directory)) != 0:
         for file in os.listdir(audio_directory):
             result = mod.transcribe(f"{config.PATH_PROMPT_BODIES_AUDIO}{file}")
-            print("transcription complete")
+            # print("transcription complete")
             os.remove(f"{config.PATH_PROMPT_BODIES_AUDIO}{file}")
             file = file.rstrip(".wav")
             result_object = json.dumps(result, indent=4)
@@ -52,14 +52,14 @@ def open_transcript():
         file_path = os.path.join(d, file)
         if os.path.exists(file_path):
             if os.stat(file_path).st_size != 0:
-                print(f"Opening {file_path}")
+                # print(f"Opening {file_path}")
                 with open(file_path, "r") as f:
                     try:
                         fd = json.load(f)
                         b.append(fd)
                     except ValueError as e:
                         print(f"Error reading {file_path}: {e}")
-                print(f"Finished reading {file_path}")
+                # print(f"Finished reading {file_path}")
                 mark_as_read(file, d)
             else:
                 print(f"File {file_path} is empty.")
@@ -84,7 +84,7 @@ def add_user_entry(body):
 
 
 def send_request(m):
-    print("request started")
+    # print("request started")
     try:
         chat_completion = ai.ChatCompletion.create(model=model, messages=m)
         return chat_completion

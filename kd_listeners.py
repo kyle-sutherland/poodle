@@ -13,8 +13,10 @@ audio_recorder = AudioRecorder()
 
 def kwl_print_keyword_message(keyword, data, stream_write_time):
     trigger_time = time.time() - stream_write_time
-    print(f"Time from stream write to keyword trigger: {trigger_time} seconds")
+    # print(f"Time from stream write to keyword trigger: {trigger_time} seconds")
+    print("  ")
     print(f"{keyword}!!")
+    print("  ")
 
 
 def kwl_start_recording(keyword, data, stream_write_time):

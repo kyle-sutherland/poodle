@@ -3,7 +3,7 @@ import time
 
 
 class SilenceWatcher:
-    def __init__(self, silence_threshold=12, silence_duration=4):
+    def __init__(self, silence_threshold=12, silence_duration=2.5):
         self.silence_threshold = silence_threshold
         self.silence_duration = silence_duration
         self.silence_counter = 0
@@ -17,7 +17,7 @@ class SilenceWatcher:
                 if not self.silence_start_time:
                     self.silence_start_time = time.time()
                 elif time.time() - self.silence_start_time >= self.silence_duration:
-                    print("silence detected")
+                    # print("silence detected")
                     return True
         else:
             self.reset()
