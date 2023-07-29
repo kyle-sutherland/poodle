@@ -1,6 +1,6 @@
 # main.py
 import kd_listeners
-from keyword_detector import KeywordDetector
+from audio_utils import KeywordDetector
 import time
 import config
 
