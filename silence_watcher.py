@@ -1,5 +1,4 @@
 # silence_watcher.py
-
 import time
 
 

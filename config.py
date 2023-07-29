@@ -1,5 +1,4 @@
 # config.py
-
 import pyaudio
 
 ENABLE_DUMP_KEYWORD_BLOCK: bool = False

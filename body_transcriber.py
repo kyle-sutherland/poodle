@@ -1,8 +1,7 @@
+# body_transcriber.py
 import os
-
 import openai
 import whisper
-
 import config
 import json
 
@@ -39,9 +38,21 @@ def open_transcript():
     b = {}
     d = "body_transcriptions/"
     for file in os.listdir(d):
-        f = open(f"{d}{file}" "r")
-        fd = json.load(f)
-        b.update(fd)
+        file_path = os.path.join(d, file)
+        if os.path.exists(file_path):
+            if os.stat(file_path).st_size != 0:
+                print(f"Opening {file_path}")
+                with open(file_path, "r") as f:
+                    try:
+                        fd = json.load(f)
+                        b.update(fd)
+                    except ValueError as e:
+                        print(f"Error reading {file_path}: {e}")
+                print(f"Finished reading {file_path}")
+            else:
+                print(f"File {file_path} is empty.")
+        else:
+            print(f"File {file_path} does not exist.")
     return b
 
 

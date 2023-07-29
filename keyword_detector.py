@@ -1,11 +1,8 @@
 # keyword_detector.py
-
 import threading
 import queue
 from concurrent.futures import ThreadPoolExecutor
-
 from vosk import Model, KaldiRecognizer
-
 from audio_queue_fetcher import AudioQueueFetcher
 
 

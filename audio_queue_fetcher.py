@@ -1,9 +1,8 @@
+# audio_queue_fetcher.py
 import threading
 import time
 import wave
-
 import pyaudio
-
 import config
 
 

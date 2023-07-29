@@ -1,8 +1,7 @@
+# audio_queue_fetcher.py
 import threading
-
 import pyaudio
 import wave
-
 import config
 import event_flags
 
