@@ -4,7 +4,7 @@ import pyaudio
 import wave
 
 import config
-import state_controller
+import event_flags
 
 
 class AudioRecorder(threading.Thread):
@@ -13,26 +13,27 @@ class AudioRecorder(threading.Thread):
         self.pa = pyaudio.PyAudio()
         self.default_device_info = self.pa.get_default_input_device_info()
         self.sample_rate = int(self.default_device_info['defaultSampleRate'])
+        self.frames_per_buffer = 2048
         self.frames = []
 
     def create_stream(self):
         stream = self.pa.open(format=config.PYAUDIO_FORMAT,
                               channels=config.PYAUDIO_CHANNELS,
                               rate=self.sample_rate, input=True,
-                              frames_per_buffer=1024)
+                              frames_per_buffer=self.frames_per_buffer)
         return stream
 
     def start_recording(self):
-        state_controller.recording.set()
+        event_flags.recording.set()
         print("recording started")
         self.frames.clear()
         stream = self.create_stream()
-        while state_controller.recording.is_set():
-            data = stream.read(1024)
+        while event_flags.recording.is_set():
+            data = stream.read(self.frames_per_buffer)
             self.frames.append(data)
 
     def stop_recording(self, filepath):
-        state_controller.recording.clear()
+        event_flags.recording.clear()
         sound_file = wave.open(filepath, "wb")
         sound_file.setnchannels(config.PYAUDIO_CHANNELS)
         sound_file.setsampwidth(self.pa.get_sample_size(pyaudio.paInt16))

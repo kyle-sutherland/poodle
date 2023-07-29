@@ -1,11 +1,10 @@
 # kd_listeners.py
-
 import time
 import json
-
+import body_transcriber
 import config
 from silence_watcher import SilenceWatcher
-import state_controller
+import event_flags
 from audio_recorder import AudioRecorder
 
 silence_watcher = SilenceWatcher()
@@ -24,7 +23,8 @@ def kwl_dump_keyword_block(fetcher, keyword, data, stream_write_time):
 
 
 def kwl_start_recording(keyword, data, stream_write_time):
-    audio_recorder.start()
+    audio_recorder.start_recording()
+    event_flags.listening.set()
 
 
 def pl_print_all_partials(partial_result):
@@ -41,9 +41,10 @@ def pl_print_active_speech_only(partial_result):
 
 def pl_no_speech(partial_result):
     pr = json.loads(partial_result)
-    if state_controller.recording.is_set():
+    if event_flags.recording.is_set():
         if silence_watcher.check_silence(pr):
-            state_controller.silence.set()
+            event_flags.silence.set()
             timestamp = time.time()
-            audio_recorder.stop(f"{config.PATH_PROMPT_BODIES_AUDIO}{timestamp}.wav")
+            audio_recorder.stop_recording(f"{config.PATH_PROMPT_BODIES_AUDIO}body_{timestamp}.wav")
+            body_transcriber.transcribe_bodies()
             silence_watcher.reset()
