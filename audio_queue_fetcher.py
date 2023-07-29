@@ -1,7 +1,6 @@
 # audio_queue_fetcher.py
 import threading
 import time
-import wave
 import pyaudio
 import config
 
@@ -17,13 +16,6 @@ class AudioQueueFetcher(threading.Thread):
         self.frames_per_buffer = frames_per_buffer
         self.default_device_info = self.pa.get_default_input_device_info()
         self.sample_rate = int(self.default_device_info['defaultSampleRate'])
-
-    def dump_audio(self, data, filename="audio_dumps/dump.raw"):
-        with wave.open(filename, "wb") as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(pyaudio.get_sample_size(pyaudio.paInt16))
-            wf.setframerate(self.sample_rate)
-            wf.writeframes(data)
 
     def run(self):
         stream = self.pa.open(format=config.PYAUDIO_FORMAT,

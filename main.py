@@ -12,9 +12,6 @@ def main():
 
     kw_detector.add_keyword_listener(kd_listeners.kwl_print_keyword_message)
 
-    if config.ENABLE_DUMP_KEYWORD_BLOCK:
-        kw_detector.add_keyword_listener(kd_listeners.kwl_dump_keyword_block)
-
     if config.ENABLE_ALL_PARTIAL_RESULT_LOG:
         kw_detector.add_partial_listener(kd_listeners.pl_print_all_partials)
 
