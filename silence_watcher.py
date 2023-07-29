@@ -3,7 +3,7 @@ import time
 
 
 class SilenceWatcher:
-    def __init__(self, silence_threshold=8, silence_duration=2):
+    def __init__(self, silence_threshold=8, silence_duration=1.6):
         self.silence_threshold = silence_threshold
         self.silence_duration = silence_duration
         self.silence_counter = 0

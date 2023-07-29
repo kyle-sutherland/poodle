@@ -1,4 +1,6 @@
 # main.py
+import torch.cuda
+
 import kd_listeners
 from keyword_detector import KeywordDetector
 import time
@@ -18,6 +20,7 @@ def main():
     if config.ENABLE_ACTIVE_SPEECH_LOG:
         kw_detector.add_partial_listener(kd_listeners.pl_print_active_speech_only)
 
+    torch.cuda.init()
     kw_detector.start()
 
     try:

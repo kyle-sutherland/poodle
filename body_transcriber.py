@@ -3,8 +3,6 @@ import os
 import time
 
 import openai
-import torch.cuda
-import whisper
 import config
 import json
 
@@ -15,16 +13,12 @@ model = 'gpt-3.5-turbo'
 messages = [{"role": "system", "content": "you are a helpful assistant"}]
 
 
-def transcribe_bodies():
-    mod = whisper.load_model("base")
-    torch.cuda.init()
-    device = "cuda"
+def transcribe_bodies(mod):
     audio_directory = "prompt_bodies_audio"
     while len(os.listdir(audio_directory)) != 0:
         for file in os.listdir(audio_directory):
             t = time.time()
-            with torch.cuda.device(device):
-                result = mod.transcribe(f"{config.PATH_PROMPT_BODIES_AUDIO}{file}")
+            result = mod.transcribe(f"{config.PATH_PROMPT_BODIES_AUDIO}{file}")
             td = time.time() - t
             print(f"transcription completed in: {td}")
             os.remove(f"{config.PATH_PROMPT_BODIES_AUDIO}{file}")
