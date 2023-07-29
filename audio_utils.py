@@ -123,7 +123,6 @@ class Transcriber:
                 )
                 print("transcription complete")
 
-
     def transcribe_and_start_request(self, chat_session):
         self.transcribe_bodies()
         self.do_request(chat_session)
