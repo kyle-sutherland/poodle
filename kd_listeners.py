@@ -1,23 +1,19 @@
 # kd_listeners.py
 import time
 import json
-
-import whisper
-
-import body_transcriber
 import config
 from silence_watcher import SilenceWatcher
 import event_flags
-from audio_recorder import AudioRecorder
+from audio_utils import Transcriber, AudioRecorder
 
 silence_watcher = SilenceWatcher()
 audio_recorder = AudioRecorder()
-
+transcriber = Transcriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
 
 
 def kwl_print_keyword_message(keyword, data, stream_write_time):
     trigger_time = time.time() - stream_write_time
-    # print(f"Time from stream write to keyword trigger: {trigger_time} seconds")
+    print(f"Time from stream write to keyword trigger: {trigger_time} seconds")
     print("  ")
     print(f"{keyword}!!")
     print("  ")
@@ -47,5 +43,5 @@ def pl_no_speech(partial_result):
             event_flags.silence.set()
             timestamp = time.time()
             audio_recorder.stop_recording(f"{config.PATH_PROMPT_BODIES_AUDIO}body_{timestamp}.wav")
-            body_transcriber.transcribe_bodies()
+            transcriber.transcribe_bodies()
             silence_watcher.reset()
