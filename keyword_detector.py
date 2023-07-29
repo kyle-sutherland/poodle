@@ -2,6 +2,8 @@
 import threading
 import queue
 from concurrent.futures import ThreadPoolExecutor
+from time import sleep
+
 from vosk import Model, KaldiRecognizer
 from audio_queue_fetcher import AudioQueueFetcher
 
@@ -38,6 +40,7 @@ class KeywordDetector(threading.Thread):
                 partial_result = self.recognizer.PartialResult()
                 if partial_result:
                     self.notify_partial_listeners(partial_result)
+            sleep(0.1)
 
         except queue.Empty:
             print("Queue is empty.")

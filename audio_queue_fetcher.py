@@ -26,6 +26,7 @@ class AudioQueueFetcher(threading.Thread):
         while self.running.is_set():
             data = stream.read(self.frames_per_buffer)
             self.audio_queue.put((time.time(), data))
+            time.sleep(0.1)
         stream.stop_stream()
         stream.close()
         self.pa.terminate()

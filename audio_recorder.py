@@ -12,7 +12,7 @@ class AudioRecorder(threading.Thread):
         self.pa = pyaudio.PyAudio()
         self.default_device_info = self.pa.get_default_input_device_info()
         self.sample_rate = int(self.default_device_info['defaultSampleRate'])
-        self.frames_per_buffer = 2048
+        self.frames_per_buffer = 1024
         self.frames = []
 
     def create_stream(self):
@@ -38,7 +38,7 @@ class AudioRecorder(threading.Thread):
         sound_file.setsampwidth(self.pa.get_sample_size(pyaudio.paInt16))
         sound_file.setframerate(self.sample_rate)
         sound_file.writeframes(b''.join(self.frames))
-        # print("recording saved")
+        print("recording saved")
 
     def start(self):
         self.start_recording()
