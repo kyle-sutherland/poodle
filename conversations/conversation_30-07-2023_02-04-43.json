@@ -1,0 +1,30 @@
+[
+    {
+        "role": "system",
+        "content": "You are a helpful assistant."
+    },
+    {
+        "role": "user",
+        "content": " Who was the founder of the Rock Band at ACDZ?"
+    },
+    {
+        "role": "assistant",
+        "content": "The founder of the rock band at ACDZ is not specified in your prompt. Could you please provide more information or clarify your question?"
+    },
+    {
+        "role": "user",
+        "content": " The Australian Rock Band, ACDC."
+    },
+    {
+        "role": "assistant",
+        "content": "The Australian rock band AC/DC was formed by brothers Malcolm and Angus Young in Sydney in 1973. They were later joined by vocalist Bon Scott, bassist Mark Evans, and drummer Phil Rudd to complete the lineup."
+    },
+    {
+        "role": "user",
+        "content": " What was their biggest hit?"
+    },
+    {
+        "role": "assistant",
+        "content": "AC/DC has had numerous hit songs throughout their career. One of their biggest hits and most iconic songs is \"Back in Black,\" which was released in 1980 and became a worldwide rock anthem. It is often considered their signature song and one of the best-selling rock songs of all time."
+    }
+]

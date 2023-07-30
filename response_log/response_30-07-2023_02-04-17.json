@@ -1,0 +1,21 @@
+{
+    "id": "chatcmpl-7hvhPux5s3xaazBi7Y8yXoBu2VyCP",
+    "object": "chat.completion",
+    "created": 1690704255,
+    "model": "gpt-3.5-turbo-0613",
+    "choices": [
+        {
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": "The Australian rock band AC/DC was formed by brothers Malcolm and Angus Young in Sydney in 1973. They were later joined by vocalist Bon Scott, bassist Mark Evans, and drummer Phil Rudd to complete the lineup."
+            },
+            "finish_reason": "stop"
+        }
+    ],
+    "usage": {
+        "prompt_tokens": 74,
+        "completion_tokens": 45,
+        "total_tokens": 119
+    }
+}
