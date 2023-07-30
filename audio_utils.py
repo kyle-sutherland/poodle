@@ -1,18 +1,17 @@
 # audio_utils.py
-import json
 import os
 import queue
 import wave
-from concurrent.futures import ThreadPoolExecutor
 import pyaudio
 import torch.cuda
 import whisper
-from vosk import Model, KaldiRecognizer
 import threading
 import time
 import config
 import event_flags
 from file_manager import FileManager
+from vosk import Model, KaldiRecognizer
+from concurrent.futures import ThreadPoolExecutor
 
 
 class KeywordDetector(threading.Thread):
@@ -111,16 +110,19 @@ class Transcriber:
         self.transcription_directory = transcription_directory
         self.whisper = whisper
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.mod = whisper.load_model("base", self.device)
+        self.model = 'base'
+        self.mod = whisper.load_model(self.model, self.device)
 
     def transcribe_bodies(self):
         while len(os.listdir(self.audio_directory)) != 0:
             for file in os.listdir(self.audio_directory):
+                t = time.time()
                 result = self.mod.transcribe(audio=f"{self.audio_directory}{file}")
                 os.remove(f"{self.audio_directory}{file}")
                 file = file.rstrip(".wav")
                 FileManager.save_json(f"{self.transcription_directory}transcription_{file}.json", result)
-                print("transcription complete")
+                print(
+                    f"transcription completed in: {time.time() - t} seconds using device: {self.device} model: {self.model}")
 
 
 class AudioRecorder(threading.Thread):
