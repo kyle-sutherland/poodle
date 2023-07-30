@@ -9,3 +9,9 @@ test_audio/**
 prompt_bodies_audio/**
 body_transcriptions/**
 api_keys/**
+/.vs/poodle/
+/.vs/ProjectSettings.json
+/.vs/PythonSettings.json
+/.vs/slnx.sqlite
+/.vs/VSWorkspaceState.json
+/.vs/
