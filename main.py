@@ -1,6 +1,4 @@
 # main.py
-import os
-
 import chat_manager
 import kd_listeners
 from audio_utils import KeywordDetector, Transcriber
