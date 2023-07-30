@@ -1,0 +1,21 @@
+{
+    "id": "chatcmpl-7hvhqzf7tiGHQfLPaCXpGJDjugGXz",
+    "object": "chat.completion",
+    "created": 1690704282,
+    "model": "gpt-3.5-turbo-0613",
+    "choices": [
+        {
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": "AC/DC has had numerous hit songs throughout their career. One of their biggest hits and most iconic songs is \"Back in Black,\" which was released in 1980 and became a worldwide rock anthem. It is often considered their signature song and one of the best-selling rock songs of all time."
+            },
+            "finish_reason": "stop"
+        }
+    ],
+    "usage": {
+        "prompt_tokens": 133,
+        "completion_tokens": 60,
+        "total_tokens": 193
+    }
+}

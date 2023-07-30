@@ -1,6 +1,4 @@
 # main.py
-from datetime import datetime
-
 import chat_manager
 import kd_listeners
 from audio_utils import KeywordDetector, Transcriber
@@ -8,6 +6,17 @@ from file_manager import FileManager
 import time
 import config
 import event_flags as ef
+
+
+def do_request(chat_session, transcriptions):
+    if len(transcriptions) != 0:
+        chat_session.add_user_entry(transcriptions)
+    resp = chat_session.send_request()
+    chat_session.add_reply_entry(resp)
+    timestamp = FileManager.get_datetime_string()
+    FileManager.save_json(f'{config.RESPONSE_LOG_PATH}response_{timestamp}.json', resp)
+    print(resp["choices"][0]["message"]["content"])
+    ef.silence.clear()
 
 
 def main():
@@ -31,8 +40,15 @@ def main():
     try:
         while True:
             transcriber.transcribe_bodies()
-            if ef.silence.is_set():
-                transcriber.do_request(chat_session)
+            if ef.silence.is_set() and not ef.recording.is_set():
+                transcriptions = FileManager.read_transcriptions(config.TRANSCRIPTION_PATH)
+                if len(chat_manager.extract_trans_text(transcriptions)) < 0:
+                    print("I didn't hear you")
+                    ef.silence.clear()
+                    continue
+                do_request(chat_session, transcriptions)
+                action_time = time.time() - kw_detector.stream_write_time
+                print(f"total response time: {action_time}")
                 convo = chat_session.messages
                 timestamp = FileManager.get_datetime_string()
                 FileManager.save_json(f'{config.CONVERSATIONS_PATH}conversation_{timestamp}.json', convo)

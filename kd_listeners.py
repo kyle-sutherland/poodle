@@ -4,6 +4,7 @@ import json
 import config
 import event_flags
 from audio_utils import Transcriber, AudioRecorder, SilenceWatcher
+from file_manager import FileManager
 
 silence_watcher = SilenceWatcher()
 audio_recorder = AudioRecorder()
@@ -40,6 +41,6 @@ def pl_no_speech(partial_result):
     if event_flags.recording.is_set():
         if silence_watcher.check_silence(pr):
             event_flags.silence.set()
-            timestamp = time.time()
+            timestamp = FileManager.get_datetime_string()
             audio_recorder.stop_recording(f"{config.PATH_PROMPT_BODIES_AUDIO}body_{timestamp}.wav")
             silence_watcher.reset()

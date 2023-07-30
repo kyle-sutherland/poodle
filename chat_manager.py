@@ -4,6 +4,13 @@ import openai
 import config
 
 
+def extract_trans_text(content) -> list:
+    speech = []
+    for i in content:
+        speech.append(i["text"])
+    return speech
+
+
 class ChatSession:
     def __init__(self):
         self.ai = openai
@@ -15,9 +22,14 @@ class ChatSession:
         self.messages = [{"role": "system", "content": "You are a helpful assistant."}]
 
     def add_user_entry(self, content):
-        self.messages.append(
-            {"role": "user", "content": content[0]["text"]},
-        )
+        speech = extract_trans_text(content)
+        for i in speech:
+            if i is not None or "":
+                self.messages.append(
+                    {"role": "user", "content": i},
+                )
+            else:
+                pass
 
     def add_reply_entry(self, response):
         reply = response['choices'][0]['message']
