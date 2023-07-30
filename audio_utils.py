@@ -4,8 +4,10 @@ import os
 import queue
 import wave
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
 import pyaudio
+import torch.cuda
 import whisper
 from vosk import Model, KaldiRecognizer
 import threading
@@ -48,7 +50,7 @@ class KeywordDetector(threading.Thread):
                 partial_result = self.recognizer.PartialResult()
                 if partial_result:
                     self.notify_partial_listeners(partial_result)
-                time.sleep(0.1)
+                time.sleep(0.05)
 
         except queue.Empty:
             print("Queue is empty.")
@@ -95,7 +97,7 @@ class AudioQueueFetcher(threading.Thread):
         while self.running.is_set():
             data = stream.read(self.frames_per_buffer)
             self.audio_queue.put((time.time(), data))
-            time.sleep(0.1)
+            time.sleep(0.05)
         stream.stop_stream()
         stream.close()
         self.pa.terminate()
@@ -109,7 +111,8 @@ class Transcriber:
         self.audio_directory = audio_directory
         self.transcription_directory = transcription_directory
         self.whisper = whisper
-        self.mod = whisper.load_model("base")
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.mod = whisper.load_model("base", self.device)
 
     def transcribe_bodies(self):
         while len(os.listdir(self.audio_directory)) != 0:
@@ -123,18 +126,16 @@ class Transcriber:
                 )
                 print("transcription complete")
 
-    def transcribe_and_start_request(self, chat_session):
-        self.transcribe_bodies()
-        self.do_request(chat_session)
-
     def do_request(self, chat_session):
         transcriptions = FileManager.read_transcriptions(self.transcription_directory)
         if len(transcriptions) != 0:
             chat_session.add_user_entry(transcriptions)
         resp = chat_session.send_request()
-        timestamp = time.time()
+        timestamp = FileManager.get_datetime_string()
+        FileManager.save_json(f'{config.RESPONSE_LOG_PATH}', resp)
         chat_session.add_reply_entry(resp)
         print(resp["choices"][0]["message"]["content"])
+        event_flags.silence.clear()
 
 
 class AudioRecorder(threading.Thread):
