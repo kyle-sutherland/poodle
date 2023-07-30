@@ -11,3 +11,5 @@ ENABLE_ALL_PARTIAL_RESULT_LOG = False
 ENABLE_ACTIVE_SPEECH_LOG = False
 PATH_PROMPT_BODIES_AUDIO = "prompt_bodies_audio/"
 TRANSCRIPTION_PATH = "body_transcriptions/"
+CONVERSATIONS_PATH = 'conversations/'
+RESPONSE_LOG_PATH = 'response_log/'

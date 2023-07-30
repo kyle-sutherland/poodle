@@ -1,22 +1,16 @@
 # chat_manager.py
 import os
-import threading
-import time
-
 import openai
-
 import config
-from file_manager import FileManager
-
-ai = openai
-ai.api_key = os.getenv('OPENAI_API_KEY')
-ai.organization = "org-9YiPG54UMFObNmQ2TMOnPCar"
-model = 'gpt-3.5-turbo'
-messages = [{"role": "system", "content": "you are a helpful assistant"}]
 
 
 class ChatSession:
     def __init__(self):
+        self.ai = openai
+        self.ai.api_key = os.getenv('OPENAI_API_KEY')
+        self.ai.organization = "org-9YiPG54UMFObNmQ2TMOnPCar"
+        self.model = 'gpt-3.5-turbo'
+        self.messages = [{"role": "system", "content": "you are a helpful assistant"}]
         self.transcription_directory = config.TRANSCRIPTION_PATH
         self.messages = [{"role": "system", "content": "You are a helpful assistant."}]
 
@@ -26,13 +20,13 @@ class ChatSession:
         )
 
     def add_reply_entry(self, response):
-        reply = response['choices'][0]['message']['content']
-        self.messages.append({"role": "assistant", "content": reply})
+        reply = response['choices'][0]['message']
+        self.messages.append(reply)
 
     def send_request(self):
         try:
-            chat_completion = ai.ChatCompletion.create(
-                model=model,
+            chat_completion = self.ai.ChatCompletion.create(
+                model=self.model,
                 messages=self.messages
             )
             return chat_completion

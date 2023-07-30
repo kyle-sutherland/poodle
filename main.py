@@ -1,9 +1,13 @@
 # main.py
+from datetime import datetime
+
 import chat_manager
 import kd_listeners
 from audio_utils import KeywordDetector, Transcriber
+from file_manager import FileManager
 import time
 import config
+import event_flags as ef
 
 
 def main():
@@ -26,7 +30,12 @@ def main():
 
     try:
         while True:
-            transcriber.transcribe_and_start_request(chat_session)
+            transcriber.transcribe_bodies()
+            if ef.silence.is_set():
+                transcriber.do_request(chat_session)
+                convo = chat_session.messages
+                timestamp = FileManager.get_datetime_string()
+                FileManager.save_json(f'{config.CONVERSATIONS_PATH}conversation_{timestamp}.json', convo)
             time.sleep(1)
     except KeyboardInterrupt:
         print("Closing the program")

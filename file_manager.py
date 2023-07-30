@@ -1,10 +1,18 @@
+# file_manager.py
 import os
+from datetime import datetime
 
 import config
 import json
 
 
 class FileManager:
+    @staticmethod
+    def get_datetime_string() -> str:
+        now = datetime.now()
+        timestamp = now.strftime("%d/%m/%Y-%H:%M:%S")
+        return timestamp
+
     @staticmethod
     def write_file(file_path, content):
         with open(file_path, "w") as outfile:
@@ -19,6 +27,11 @@ class FileManager:
     def delete_transcription(file_name):
         file_path = os.path.join(config.TRANSCRIPTION_PATH, file_name)
         os.remove(file_path)
+
+    @staticmethod
+    def save_json(file_name, content):
+        with open(file_name, 'w') as f:
+            json.dumps(content, indent=4)
 
     @staticmethod
     def mark_as_read(file_name):
