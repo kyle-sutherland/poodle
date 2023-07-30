@@ -1,0 +1,21 @@
+{
+    "id": "chatcmpl-7hw9evQtgx8kPtGCZ6bSDiJc429v7",
+    "object": "chat.completion",
+    "created": 1690706006,
+    "model": "gpt-3.5-turbo-0613",
+    "choices": [
+        {
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": "Lil Wayne, whose real name is Dwayne Michael Carter Jr., is an American rapper, singer, and songwriter. He gained popularity in the early 2000s with his mixtapes and collaborations with various artists. Lil Wayne has released numerous albums throughout his career, earning him multiple Grammy Awards and a significant influence on the hip hop genre."
+            },
+            "finish_reason": "stop"
+        }
+    ],
+    "usage": {
+        "prompt_tokens": 22,
+        "completion_tokens": 70,
+        "total_tokens": 92
+    }
+}

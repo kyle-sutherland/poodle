@@ -4,25 +4,20 @@ import os
 import queue
 import wave
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
-
 import pyaudio
 import torch.cuda
 import whisper
 from vosk import Model, KaldiRecognizer
 import threading
 import time
-
 import config
 import event_flags
 from file_manager import FileManager
 
 
 class KeywordDetector(threading.Thread):
-
     def __init__(self, keyword, audio_params=None, max_listener_threads=10):
         threading.Thread.__init__(self)
-
         self.stream_write_time = None
         self.keyword = keyword
         self.model = Model(lang='en-us')
@@ -37,6 +32,10 @@ class KeywordDetector(threading.Thread):
         self.sample_rate = self.fetcher.sample_rate
         self.executor = ThreadPoolExecutor(max_listener_threads)
         self.recognizer = KaldiRecognizer(self.model, self.sample_rate)
+
+    @property
+    def get_stream_write_time(self) -> float:
+        return self.stream_write_time
 
     def run(self):
         self.fetcher.start()
@@ -120,22 +119,8 @@ class Transcriber:
                 result = self.mod.transcribe(audio=f"{self.audio_directory}{file}")
                 os.remove(f"{self.audio_directory}{file}")
                 file = file.rstrip(".wav")
-                FileManager.write_file(
-                    f"{self.transcription_directory}transcription_{file}.json",
-                    json.dumps(result, indent=4)
-                )
+                FileManager.save_json(f"{self.transcription_directory}transcription_{file}.json", result)
                 print("transcription complete")
-
-    def do_request(self, chat_session):
-        transcriptions = FileManager.read_transcriptions(self.transcription_directory)
-        if len(transcriptions) != 0:
-            chat_session.add_user_entry(transcriptions)
-        resp = chat_session.send_request()
-        timestamp = FileManager.get_datetime_string()
-        FileManager.save_json(f'{config.RESPONSE_LOG_PATH}', resp)
-        chat_session.add_reply_entry(resp)
-        print(resp["choices"][0]["message"]["content"])
-        event_flags.silence.clear()
 
 
 class AudioRecorder(threading.Thread):
