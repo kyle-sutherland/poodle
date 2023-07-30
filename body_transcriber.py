@@ -1,7 +1,7 @@
 # body_transcriber.py
 import os
 import time
-
+import whisper
 import openai
 import config
 import json
@@ -10,10 +10,12 @@ ai = openai
 ai.api_key = os.getenv('OPENAI_API_KEY')
 ai.organization = "org-9YiPG54UMFObNmQ2TMOnPCar"
 model = 'gpt-3.5-turbo'
-messages = [{"role": "system", "content": "you are a helpful assistant"}]
+messages = [{"role": "system", "content": "you are a helpful assistant."}]
 
 
-def transcribe_bodies(mod):
+def transcribe_bodies():
+    device = "cuda"
+    mod = whisper.load_model("base", device=device)
     audio_directory = "prompt_bodies_audio"
     while len(os.listdir(audio_directory)) != 0:
         for file in os.listdir(audio_directory):
@@ -26,7 +28,7 @@ def transcribe_bodies(mod):
             result_object = json.dumps(result, indent=4)
             with open(f"body_transcriptions/transcription_{file}.json", "w") as outfile:
                 outfile.write(result_object)
-    # do_request()
+    do_request()
 
 
 def do_request():

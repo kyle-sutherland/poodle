@@ -12,8 +12,7 @@ from audio_recorder import AudioRecorder
 
 silence_watcher = SilenceWatcher()
 audio_recorder = AudioRecorder()
-device = "cuda"
-model_whisper = whisper.load_model("tiny", device=device)
+
 
 
 def kwl_print_keyword_message(keyword, data, stream_write_time):
@@ -48,5 +47,5 @@ def pl_no_speech(partial_result):
             event_flags.silence.set()
             timestamp = time.time()
             audio_recorder.stop_recording(f"{config.PATH_PROMPT_BODIES_AUDIO}body_{timestamp}.wav")
-            body_transcriber.transcribe_bodies(model_whisper)
+            body_transcriber.transcribe_bodies()
             silence_watcher.reset()
