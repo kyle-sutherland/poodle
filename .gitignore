@@ -1,5 +1,6 @@
 .idea
 .vscode
+.vs
 .fleet
 .pytest_cache
 .benchmarks
