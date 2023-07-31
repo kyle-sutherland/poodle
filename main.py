@@ -1,6 +1,5 @@
 # main.py
 import gc
-
 import chat_manager
 import kd_listeners
 from audio_utils import KeywordDetector, Transcriber, TextToSpeech
@@ -48,7 +47,6 @@ def main():
         text_to_speech.play_voice()
         ef.speaking.clear()
         print("")
-
         del text_to_speech
         ef.silence.clear()
         gc.collect()
