@@ -12,3 +12,4 @@ response_log/**
 api_keys/**
 voice.wav
 __pycache__
+*.pyc
