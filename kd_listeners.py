@@ -20,6 +20,7 @@ def kwl_print_keyword_message(keyword, data, stream_write_time):
 
 
 def kwl_start_recording(keyword, data, stream_write_time):
+    event_flags.stream_write_time = stream_write_time
     audio_recorder.start_recording()
     event_flags.listening.set()
 

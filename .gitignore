@@ -1,6 +1,5 @@
 .idea
 .vscode
-.vs
 .fleet
 .pytest_cache
 .benchmarks
@@ -8,10 +7,7 @@ audio_dumps/**
 test_audio/**
 prompt_bodies_audio/**
 body_transcriptions/**
+conversations/**
+response_log/**
 api_keys/**
-/.vs/poodle/
-/.vs/ProjectSettings.json
-/.vs/PythonSettings.json
-/.vs/slnx.sqlite
-/.vs/VSWorkspaceState.json
-/.vs/
+voice.wav

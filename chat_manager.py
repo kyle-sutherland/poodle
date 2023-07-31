@@ -17,9 +17,10 @@ class ChatSession:
         self.ai.api_key = os.getenv('OPENAI_API_KEY')
         self.ai.organization = "org-9YiPG54UMFObNmQ2TMOnPCar"
         self.model = 'gpt-3.5-turbo'
-        self.messages = [{"role": "system", "content": "you are a helpful assistant"}]
         self.transcription_directory = config.TRANSCRIPTION_PATH
-        self.messages = [{"role": "system", "content": "You are a helpful assistant."}]
+        self.messages = [{"role": "system",
+                          "content": "You are a helpful assistant"
+                          }]
 
     def add_user_entry(self, content):
         speech = extract_trans_text(content)
