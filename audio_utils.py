@@ -49,6 +49,7 @@ class KeywordDetector(threading.Thread):
                 time.sleep(0.05)
         except queue.Empty:
             print("Queue is empty.")
+            pass
         except Exception as e:
             print(f"An error occurred: {e}")
 
@@ -194,25 +195,26 @@ class TextToSpeech:
         self.pa = pyaudio.PyAudio()
         self.model = "tts_models/en/ek1/tacotron2"
         self.tts = TTS(self.model)
-        self.wf = wave.open(self.file, 'rb')
         self.chunk = 1024
-        self.stream = self.pa.open(
-            format=self.pa.get_format_from_width(self.wf.getsampwidth()),
-            channels=self.wf.getnchannels(),
-            rate=self.wf.getframerate(),
-            output=True
-        )
 
     def make_voice(self, text):
         self.tts.tts_to_file(text=text, gpu=True, file_path=self.file)
 
     def play_voice(self):
-        data = self.wf.readframes(self.chunk)
+        wf = wave.open(self.file, 'rb')
+        stream = self.pa.open(
+            format=self.pa.get_format_from_width(wf.getsampwidth()),
+            channels=wf.getnchannels(),
+            rate=wf.getframerate(),
+            output=True
+        )
+        data = wf.readframes(self.chunk)
         while data != b'':
-            self.stream.write(data)
-            data = self.wf.readframes(self.chunk)
+            stream.write(data)
+            data = wf.readframes(self.chunk)
+        self.stop(self.file, stream)
 
-    def close(self):
-        os.remove(self.file)
-        self.stream.close()
+    def stop(self, file, strm):
+        os.remove(file)
+        strm.close()
         self.pa.terminate()
