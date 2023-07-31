@@ -37,7 +37,7 @@ def main():
         tstamp = FileManager.get_datetime_string()
         FileManager.save_json(f'{config.RESPONSE_LOG_PATH}response_{tstamp}.json', resp)
         ef.speaking.set()
-        text_to_speech.make_voice('things')
+        text_to_speech.make_voice(resp["choices"][0]["messages"]["content"])
         # pyaudio currently seems to have issues in python 3.10. Going to try workarounds on the test branch
         # text_to_speech.play_voice()
         ef.speaking.clear()
