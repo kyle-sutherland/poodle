@@ -43,12 +43,12 @@ def main():
         # ok. found a workaround: use playsound instead of pyaudio to play the file. Not ideal but works for now.
         # may try to use python 3.9 at some point. This is insanely expensive and takes FOREVER. Going to try to figure
         # that out, too.
-        print(f'{resp["choices"][0]["message"]["content"]}\n')
+        print(f'\n{resp["choices"][0]["message"]["content"]}\n')
+        print(f"total response time: {time.time() - ef.stream_write_time} seconds\n")
         text_to_speech.play_voice()
         ef.speaking.clear()
-
         print("")
-        print(f"total response time: {time.time() - ef.stream_write_time} seconds\n")
+
         del text_to_speech
         ef.silence.clear()
         gc.collect()
