@@ -25,4 +25,4 @@ tts.tts_to_file(text="The Cassini spacecraft was a NASA robotic probe that was l
                      "ensured that Cassini would not contaminate any of Saturn's potentially habitable moons with "
                      "Earthly microbes. Overall, the Cassini mission greatly expanded our understanding of Saturn, "
                      "its rings, moons, and their interactions. It revolutionized our knowledge of these cosmic "
-                     "phenomena, leaving a lasting impact on planetary science.", gpu=False, progress_bar=False)
+                     "phenomena, leaving a lasting impact on planetary science.", gpu=True, progress_bar=False)
