@@ -7,14 +7,16 @@ import torch.cuda
 import whisper
 import threading
 import time
+from TTS.api import TTS
 import config
-import event_flags
+import event_flags as ef
 from file_manager import FileManager
 from vosk import Model, KaldiRecognizer
 from concurrent.futures import ThreadPoolExecutor
 
 
 class KeywordDetector(threading.Thread):
+
     def __init__(self, keyword, audio_params=None, max_listener_threads=10):
         threading.Thread.__init__(self)
         self.stream_write_time = None
@@ -25,16 +27,12 @@ class KeywordDetector(threading.Thread):
         self.partial_listeners = []
         self.running = threading.Event()
         self.running.set()
-
+        self.stream_write_time = None
         self.audio_params = audio_params or {}
         self.fetcher = AudioQueueFetcher(self.audio_queue, self.running, **self.audio_params)
         self.sample_rate = self.fetcher.sample_rate
         self.executor = ThreadPoolExecutor(max_listener_threads)
         self.recognizer = KaldiRecognizer(self.model, self.sample_rate)
-
-    @property
-    def get_stream_write_time(self) -> float:
-        return self.stream_write_time
 
     def run(self):
         self.fetcher.start()
@@ -49,7 +47,6 @@ class KeywordDetector(threading.Thread):
                 if partial_result:
                     self.notify_partial_listeners(partial_result)
                 time.sleep(0.05)
-
         except queue.Empty:
             print("Queue is empty.")
         except Exception as e:
@@ -110,7 +107,7 @@ class Transcriber:
         self.transcription_directory = transcription_directory
         self.whisper = whisper
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model = 'base'
+        self.model = 'tiny'
         self.mod = whisper.load_model(self.model, self.device)
 
     def transcribe_bodies(self):
@@ -122,7 +119,7 @@ class Transcriber:
                 file = file.rstrip(".wav")
                 FileManager.save_json(f"{self.transcription_directory}transcription_{file}.json", result)
                 print(
-                    f"transcription completed in: {time.time() - t} seconds using device: {self.device} model: {self.model}")
+                    f"transcription completed in: {time.time() - t} seconds using device: {self.device}, model: {self.model}\n")
 
 
 class AudioRecorder(threading.Thread):
@@ -134,30 +131,30 @@ class AudioRecorder(threading.Thread):
         self.frames_per_buffer = 2048
         self.frames = []
 
-    def create_stream(self):
-        stream = self.pa.open(format=config.PYAUDIO_FORMAT,
-                              channels=config.PYAUDIO_CHANNELS,
-                              rate=self.sample_rate, input=True,
-                              frames_per_buffer=self.frames_per_buffer)
-        return stream
+        self.stream = self.pa.open(format=config.PYAUDIO_FORMAT,
+                                   channels=config.PYAUDIO_CHANNELS,
+                                   rate=self.sample_rate, input=True,
+                                   frames_per_buffer=self.frames_per_buffer)
 
     def start_recording(self):
-        event_flags.recording.set()
+        ef.recording.set()
         print("recording started")
         self.frames.clear()
-        stream = self.create_stream()
-        while event_flags.recording.is_set():
-            data = stream.read(self.frames_per_buffer)
+        while ef.recording.is_set():
+            data = self.stream.read(self.frames_per_buffer)
             self.frames.append(data)
 
     def stop_recording(self, filepath):
-        event_flags.recording.clear()
+        ef.recording.clear()
         sound_file = wave.open(filepath, "wb")
         sound_file.setnchannels(config.PYAUDIO_CHANNELS)
         sound_file.setsampwidth(self.pa.get_sample_size(pyaudio.paInt16))
         sound_file.setframerate(self.sample_rate)
         sound_file.writeframes(b''.join(self.frames))
-        print("recording saved")
+        self.stream.stop_stream()
+        self.stream.close()
+        self.pa.terminate()
+        # print("recording saved")
 
     def start(self):
         self.start_recording()
@@ -167,7 +164,7 @@ class AudioRecorder(threading.Thread):
 
 
 class SilenceWatcher:
-    def __init__(self, silence_threshold=9, silence_duration=2.3):
+    def __init__(self, silence_threshold=10, silence_duration=1.7):
         self.silence_threshold = silence_threshold
         self.silence_duration = silence_duration
         self.silence_counter = 0
@@ -189,3 +186,33 @@ class SilenceWatcher:
     def reset(self):
         self.silence_counter = 0
         self.silence_start_time = None
+
+
+class TextToSpeech:
+    def __init__(self):
+        self.file = 'voice.wav'
+        self.pa = pyaudio.PyAudio()
+        self.model = "tts_models/en/ek1/tacotron2"
+        self.tts = TTS(self.model)
+        self.wf = wave.open(self.file, 'rb')
+        self.chunk = 1024
+        self.stream = self.pa.open(
+            format=self.pa.get_format_from_width(self.wf.getsampwidth()),
+            channels=self.wf.getnchannels(),
+            rate=self.wf.getframerate(),
+            output=True
+        )
+
+    def make_voice(self, text):
+        self.tts.tts_to_file(text=text, gpu=True, file_path=self.file)
+
+    def play_voice(self):
+        data = self.wf.readframes(self.chunk)
+        while data != b'':
+            self.stream.write(data)
+            data = self.wf.readframes(self.chunk)
+
+    def close(self):
+        os.remove(self.file)
+        self.stream.close()
+        self.pa.terminate()
