@@ -13,6 +13,7 @@ import event_flags as ef
 from file_manager import FileManager
 from vosk import Model, KaldiRecognizer
 from concurrent.futures import ThreadPoolExecutor
+from playsound import playsound
 
 
 class KeywordDetector(threading.Thread):
@@ -192,27 +193,13 @@ class TextToSpeech:
     def __init__(self):
         self.file = 'voice.wav'
         self.pa = pyaudio.PyAudio()
-        self.model = "tts_models/en/ek1/tacotron2"
+        self.model = "tts_models/en/ljspeech/glow-tts"
         self.tts = TTS(self.model)
-        self.wf = wave.open(self.file, 'rb')
-        self.chunk = 1024
-        self.stream = self.pa.open(
-            format=self.pa.get_format_from_width(self.wf.getsampwidth()),
-            channels=self.wf.getnchannels(),
-            rate=self.wf.getframerate(),
-            output=True
-        )
 
     def make_voice(self, text):
-        self.tts.tts_to_file(text=text, gpu=True, file_path=self.file)
+        if os.path.exists(self.file):
+            os.remove(self.file)
+        self.tts.tts_to_file(text=text, gpu=True, file_path=self.file, progress_bar=False)
 
     def play_voice(self):
-        data = self.wf.readframes(self.chunk)
-        while data != b'':
-            self.stream.write(data)
-            data = self.wf.readframes(self.chunk)
-
-    def close(self):
-        os.remove(self.file)
-        self.stream.close()
-        self.pa.terminate()
+        playsound(self.file)

@@ -37,15 +37,21 @@ def main():
         tstamp = FileManager.get_datetime_string()
         FileManager.save_json(f'{config.RESPONSE_LOG_PATH}response_{tstamp}.json', resp)
         ef.speaking.set()
-        text_to_speech.make_voice('things')
+        text_to_speech.make_voice(resp["choices"][0]["message"]["content"])
+        time.sleep(0.1)
         # pyaudio currently seems to have issues in python 3.10. Going to try workarounds on the test branch
-        # text_to_speech.play_voice()
-        text_to_speech.close()
+        # ok. found a workaround: use playsound instead of pyaudio to play the file. Not ideal but works for now.
+        # may try to use python 3.9 at some point. This is insanely expensive and takes FOREVER. Going to try to figure
+        # that out, too.
+        print(f'{resp["choices"][0]["message"]["content"]}\n')
+        text_to_speech.play_voice()
         ef.speaking.clear()
-        print(f'{resp["choices"][0]["message"]["content"]}/n')
+
         print("")
         print(f"total response time: {time.time() - ef.stream_write_time} seconds\n")
+        del text_to_speech
         ef.silence.clear()
+        gc.collect()
 
     try:
         while True:
