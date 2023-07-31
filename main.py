@@ -30,12 +30,12 @@ def main():
 
     def do_request(chat, trans):
         text_to_speech = TextToSpeech()
-        if len(transcriptions) != 0:
-            chat_session.add_user_entry(transcriptions)
-        resp =  chat_session.send_request()
-        chat_session.add_reply_entry(resp)
-        timestamp = FileManager.get_datetime_string()
-        FileManager.save_json(f'{config.RESPONSE_LOG_PATH}response_{timestamp}.json', resp)
+        if len(trans) != 0:
+            chat.add_user_entry(trans)
+        resp = chat.send_request()
+        chat.add_reply_entry(resp)
+        tstamp = FileManager.get_datetime_string()
+        FileManager.save_json(f'{config.RESPONSE_LOG_PATH}response_{tstamp}.json', resp)
         ef.speaking.set()
         text_to_speech.make_voice('things')
         # pyaudio currently seems to have issues in python 3.10. Going to try workarounds on the test branch

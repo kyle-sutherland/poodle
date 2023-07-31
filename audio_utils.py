@@ -89,7 +89,7 @@ class AudioQueueFetcher(threading.Thread):
                               rate=self.sample_rate,
                               input=True,
                               frames_per_buffer=config.PYAUDIO_FRAMES_PER_BUFFER)
-        while self.running.is_set():
+        while self.running.is_set() and not ef.speaking.is_set():
             data = stream.read(self.frames_per_buffer)
             self.audio_queue.put((time.time(), data))
             time.sleep(0.05)
