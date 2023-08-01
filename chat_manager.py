@@ -23,7 +23,7 @@ class ChatSession:
         ]
     }
 
-    def __init__(self, initial_prompt: str, model: str):
+    def __init__(self, initial_prompt: str = None, model: str = None):
         self.ai = openai
         self.ai.api_key = os.getenv('OPENAI_API_KEY')
         self.ai.organization = "org-9YiPG54UMFObNmQ2TMOnPCar"
@@ -58,6 +58,8 @@ class ChatSession:
                           "content": self.initial_prompt
                           }]
         self.temperature = 0
+        self.model_token_limit = 16338
+        self.limit_thresh = 100
 
     def add_user_entry(self, content):
         speech = extract_trans_text(content)
@@ -68,6 +70,12 @@ class ChatSession:
                 )
             else:
                 pass
+
+    def check_model_limit(self, response) -> bool:
+        if response["usage"]["total_tokens"] > self.model_token_limit - self.limit_thresh:
+            return True
+        else:
+            return False
 
     def add_reply_entry(self, response):
         reply = response['choices'][0]['message']
@@ -85,3 +93,28 @@ class ChatSession:
         except Exception as e:
             print(f"Error sending request: {e}")
             return self.error_completion
+
+    def summarize_conversation(self):
+        m = self.messages[1:]
+        prompt = [{"role": "system",
+                   "content": "You will be receive an object which contains a conversation. Your goal is to summarize "
+                              "this conversation to less than %25 percent of it's original length and return your "
+                              "summary in the same format as the original object"
+                              ""},
+                  {"role": "user",
+                   "content": "m"}
+                  ]
+        try:
+            chat_completion = self.ai.ChatCompletion.create(
+                model=self.model,
+                messages=prompt,
+                temperature=0
+            )
+            return chat_completion
+        except Exception as e:
+            print(f"Error sending request: {e}")
+            return self.error_completion
+
+    def add_summary(self, response):
+        r = list(response["choices"][0]["message"]["content"])
+        self.messages[1:] = r
