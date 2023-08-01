@@ -12,6 +12,16 @@ def extract_trans_text(content) -> list:
 
 
 class ChatSession:
+    dummy_completion = {
+        "choices": [
+            {
+                "message": {
+                    "content": "An error occurred with the API request"
+                }
+            }
+        ]
+    }
+
     def __init__(self):
         self.ai = openai
         self.ai.api_key = os.getenv('OPENAI_API_KEY')
@@ -21,6 +31,7 @@ class ChatSession:
         self.messages = [{"role": "system",
                           "content": "You are a helpful assistant"
                           }]
+        self.temperature=0
 
     def add_user_entry(self, content):
         speech = extract_trans_text(content)
@@ -41,7 +52,10 @@ class ChatSession:
             chat_completion = self.ai.ChatCompletion.create(
                 model=self.model,
                 messages=self.messages
+                temperature=self.temperature
             )
             return chat_completion
+
         except Exception as e:
             print(f"Error sending request: {e}")
+            return self.dummy_completion

@@ -1,8 +1,8 @@
-# main.py
+# __main__.py
 import gc
 import chat_manager
 import kd_listeners
-from audio_utils import KeywordDetector, Transcriber, TextToSpeech
+from audio_utils import KeywordDetector, Transcriber
 from file_manager import FileManager
 import time
 import config

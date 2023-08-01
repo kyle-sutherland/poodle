@@ -131,6 +131,7 @@ class AudioRecorder(threading.Thread):
         self.sample_rate = int(self.default_device_info['defaultSampleRate'])
         self.frames_per_buffer = 2048
         self.frames = []
+        self.stream = None
 
     def start_recording(self):
         stream = self.pa.open(format=config.PYAUDIO_FORMAT,
@@ -141,12 +142,16 @@ class AudioRecorder(threading.Thread):
         ef.recording.set()
         print("recording started")
         self.frames.clear()
+        stream.start_stream()
         while ef.recording.is_set():
             data = stream.read(self.frames_per_buffer)
             self.frames.append(data)
+        self.stream = stream
 
     def stop_recording(self, filepath):
         ef.recording.clear()
+        self.stream.close()
+        self.stream.stop_stream()
         sound_file = wave.open(filepath, "wb")
         sound_file.setnchannels(config.PYAUDIO_CHANNELS)
         sound_file.setsampwidth(self.pa.get_sample_size(pyaudio.paInt16))
