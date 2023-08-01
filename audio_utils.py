@@ -90,7 +90,7 @@ class AudioQueueFetcher(threading.Thread):
                               rate=self.sample_rate,
                               input=True,
                               frames_per_buffer=config.PYAUDIO_FRAMES_PER_BUFFER)
-        while self.running.is_set() and not ef.speaking.is_set():
+        while self.running.is_set():
             data = stream.read(self.frames_per_buffer)
             self.audio_queue.put((time.time(), data))
             time.sleep(0.05)
@@ -132,17 +132,17 @@ class AudioRecorder(threading.Thread):
         self.frames_per_buffer = 2048
         self.frames = []
 
-        self.stream = self.pa.open(format=config.PYAUDIO_FORMAT,
-                                   channels=config.PYAUDIO_CHANNELS,
-                                   rate=self.sample_rate, input=True,
-                                   frames_per_buffer=self.frames_per_buffer)
-
     def start_recording(self):
+        stream = self.pa.open(format=config.PYAUDIO_FORMAT,
+                              channels=config.PYAUDIO_CHANNELS,
+                              rate=self.sample_rate, input=True,
+                              frames_per_buffer=self.frames_per_buffer)
+
         ef.recording.set()
         print("recording started")
         self.frames.clear()
         while ef.recording.is_set():
-            data = self.stream.read(self.frames_per_buffer)
+            data = stream.read(self.frames_per_buffer)
             self.frames.append(data)
 
     def stop_recording(self, filepath):
@@ -152,10 +152,7 @@ class AudioRecorder(threading.Thread):
         sound_file.setsampwidth(self.pa.get_sample_size(pyaudio.paInt16))
         sound_file.setframerate(self.sample_rate)
         sound_file.writeframes(b''.join(self.frames))
-        self.stream.stop_stream()
-        self.stream.close()
-        self.pa.terminate()
-        # print("recording saved")
+        print("recording saved")
 
     def start(self):
         self.start_recording()
