@@ -129,6 +129,5 @@ class ChatSession:
         except SyntaxError:
             print("error in summary request")
 
-
         print("\nSummary complete\n")
         # print(f"\n{self.messages}")
