@@ -43,11 +43,14 @@ def main():
         # may try to use python 3.9 at some point. This is insanely expensive and takes FOREVER. Going to try to figure
         # that out, too.
         print(f'\n{resp["choices"][0]["message"]["content"]}\n')
-        print(f"total response time: {time.time() - ef.stream_write_time} seconds\n")
+        print(f"\ntotal response time: {time.time() - ef.stream_write_time} seconds\n")
         # text_to_speech.play_voice()
         # ef.speaking.clear()
         # print("")
         # del text_to_speech
+        if chat.limit_thresh(resp):
+            s = chat.summarize_conversation()
+            chat.add_summary(s)
         ef.silence.clear()
         gc.collect()
 
