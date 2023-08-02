@@ -69,6 +69,7 @@ class KeywordDetector(threading.Thread):
 
     def close(self):
         self.running.clear()
+        self.executor.shutdown()
         self.fetcher.stop()  # use the stop method of AudioFetcher
 
 
@@ -167,7 +168,7 @@ class AudioRecorder(threading.Thread):
 
 
 class SilenceWatcher:
-    def __init__(self, silence_threshold=8, silence_duration=1.5):
+    def __init__(self, silence_threshold=12, silence_duration=1.6):
         self.silence_threshold = silence_threshold
         self.silence_duration = silence_duration
         self.silence_counter = 0

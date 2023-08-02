@@ -1,5 +1,6 @@
 # __main__.py
 import gc
+
 import chat_manager
 import kd_listeners
 from audio_utils import KeywordDetector, Transcriber
@@ -48,7 +49,7 @@ def main():
         # ef.speaking.clear()
         # print("")
         # del text_to_speech
-        if chat.limit_thresh(resp):
+        if chat.is_model_near_limit(resp):
             s = chat.summarize_conversation()
             chat.add_summary(s)
         ef.silence.clear()
@@ -67,9 +68,14 @@ def main():
                 convo = chat_session.messages
                 timestamp = FileManager.get_datetime_string()
                 FileManager.save_json(f'{config.CONVERSATIONS_PATH}conversation_{timestamp}.json', convo)
-            time.sleep(1)
+            time.sleep(0.1)
     except KeyboardInterrupt:
         print("Closing the program")
+        kw_detector.close()
+        kw_detector.join()
+        gc.collect()
+    except Exception as e:
+        print(f"exception: {e}")
         kw_detector.close()
         kw_detector.join()
         gc.collect()

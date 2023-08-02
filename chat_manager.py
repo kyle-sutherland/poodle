@@ -1,4 +1,5 @@
 # chat_manager.py
+import ast
 import os
 import openai
 import config
@@ -30,6 +31,7 @@ class ChatSession:
         if model is None:
             self.model = 'gpt-3.5-turbo-0613'
         self.transcription_directory = config.TRANSCRIPTION_PATH
+        self.initial_prompt = initial_prompt
         if initial_prompt is None:
             self.initial_prompt = ("As an Applied Expert System (AES), your goal is to provide in-depth and "
                                    "accurate analysis and opinions in various fields of expertise. You will receive "
@@ -54,12 +56,12 @@ class ChatSession:
                                    "response with the AES process. Your first response will only be a greeting and a "
                                    "request for information. The user will then provide you with information. Your "
                                    "following response will begin the AES process.")
-        self.messages = [{"role": "system",
-                          "content": self.initial_prompt
-                          }]
+        self.messages: list = [{"role": "system",
+                                "content": self.initial_prompt
+                                }]
         self.temperature = 0
         self.model_token_limit = 4097
-        self.limit_thresh = 50
+        self.limit_thresh = 0.8
 
     def add_user_entry(self, content):
         speech = extract_trans_text(content)
@@ -71,8 +73,8 @@ class ChatSession:
             else:
                 pass
 
-    def check_model_limit(self, response) -> bool:
-        if response["usage"]["total_tokens"] > self.model_token_limit - self.limit_thresh:
+    def is_model_near_limit(self, response) -> bool:
+        if response["usage"]["total_tokens"] > self.model_token_limit * self.limit_thresh:
             return True
         else:
             return False
@@ -98,12 +100,13 @@ class ChatSession:
         print("\nSummarizing conversation. Please wait...\n")
         m = self.messages[1:]
         prompt = [{"role": "system",
-                   "content": "You will be receive an object which contains a conversation. Your goal is to summarize "
-                              "this conversation to less than %25 percent of it's original length and return your "
-                              "summary in the same format as the original object"
-                              ""},
+                   "content": "You will be receive an list object which contains a conversation. Your goal is to "
+                              "summarize this conversation to less than %25 percent of it's original length and "
+                              "return your summary in the same format as the original object:"
+                              "[{'role': 'user', 'content': '*content goes here*'}, {'role': 'assistant', 'content': "
+                              "'*content goes here*'"},
                   {"role": "user",
-                   "content": m}
+                   "content": f"{m}"}
                   ]
         try:
             chat_completion = self.ai.ChatCompletion.create(
@@ -117,7 +120,15 @@ class ChatSession:
             return self.error_completion
 
     def add_summary(self, response):
-        r = list(response["choices"][0]["message"]["content"])
-        self.messages[1:] = r
+        m = [self.messages[0]]
+        r = response["choices"][0]["message"]["content"]
+        try:
+            r_parsed = ast.literal_eval(r)
+            for i in r_parsed:
+                m.append(i)
+        except SyntaxError:
+            print("error in summary request")
+
+
         print("\nSummary complete\n")
-        print(f"\n{self.messages}")
+        # print(f"\n{self.messages}")
