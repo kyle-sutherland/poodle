@@ -52,6 +52,7 @@ def main():
         if chat.is_model_near_limit(resp):
             s = chat.summarize_conversation()
             chat.add_summary(s)
+            FileManager.save_json(f"{config.RESPONSE_LOG_PATH}.response_{FileManager.get_datetime_string()}.json", s)
         ef.silence.clear()
         gc.collect()
 

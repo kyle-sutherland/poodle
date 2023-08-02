@@ -1,8 +1,10 @@
 # chat_manager.py
 import ast
+import json
 import os
 import openai
 import config
+from file_manager import FileManager
 
 
 def extract_trans_text(content) -> list:
@@ -29,7 +31,7 @@ class ChatSession:
         self.ai.api_key = os.getenv('OPENAI_API_KEY')
         self.ai.organization = "org-9YiPG54UMFObNmQ2TMOnPCar"
         if model is None:
-            self.model = 'gpt-3.5-turbo-0613'
+            self.model = 'gpt-3.5-turbo-16k-0613'
         self.transcription_directory = config.TRANSCRIPTION_PATH
         self.initial_prompt = initial_prompt
         if initial_prompt is None:
@@ -56,12 +58,13 @@ class ChatSession:
                                    "response with the AES process. Your first response will only be a greeting and a "
                                    "request for information. The user will then provide you with information. Your "
                                    "following response will begin the AES process.")
-        self.messages: list = [{"role": "system",
-                                "content": self.initial_prompt
-                                }]
+        # self.messages: list = [{"role": "system",
+        #                         "content": self.initial_prompt
+        #                         }]
+        self.messages: list = json.loads(FileManager.read_file("conversations/conversation_02-08-2023_10-06-14.json"))
         self.temperature = 0
-        self.model_token_limit = 4097
-        self.limit_thresh = 0.8
+        self.model_token_limit = 16338
+        self.limit_thresh = 0.5
 
     def add_user_entry(self, content):
         speech = extract_trans_text(content)
@@ -100,11 +103,15 @@ class ChatSession:
         print("\nSummarizing conversation. Please wait...\n")
         m = self.messages[1:]
         prompt = [{"role": "system",
-                   "content": "You will be receive an list object which contains a conversation. Your goal is to "
-                              "summarize this conversation to less than %25 percent of it's original length and "
-                              "return your summary in the same format as the original object:"
-                              "[{'role': 'user', 'content': '*content goes here*'}, {'role': 'assistant', 'content': "
-                              "'*content goes here*'"},
+                   "content": "You will be receive an json object which contains a conversation. The object has the "
+                              "following structure:\n [{'role': 'user', 'content': '*content goes here*'}, "
+                              "{'role': 'assistant', 'content': '*content goes here*'}]\n"
+                              "The 'role' key defines a speaker in the conversation, while the 'content' key defines "
+                              "what that speaker said. Your goal is to summarize this conversation to less than ten "
+                              "percent percent of it's original length and return your summary in the same structure "
+                              "as the original object:\n"
+                              "[{'role': 'user', 'content': '*content goes here*'}, "
+                              "{'role': 'assistant', 'content': '*content goes here*'}]"},
                   {"role": "user",
                    "content": f"{m}"}
                   ]
@@ -121,13 +128,13 @@ class ChatSession:
 
     def add_summary(self, response):
         m = [self.messages[0]]
-        r = response["choices"][0]["message"]["content"]
+        r: str = response["choices"][0]["message"]["content"]
         try:
             r_parsed = ast.literal_eval(r)
             for i in r_parsed:
                 m.append(i)
-        except SyntaxError:
-            print("error in summary request")
+        except SyntaxError as e:
+            print(f"{e}")
 
         print("\nSummary complete\n")
         # print(f"\n{self.messages}")

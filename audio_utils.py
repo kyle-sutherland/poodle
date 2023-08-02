@@ -109,7 +109,7 @@ class Transcriber:
         self.transcription_directory = transcription_directory
         self.whisper = whisper
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model = 'tiny'
+        self.model = 'base'
         self.mod = whisper.load_model(self.model, self.device)
 
     def transcribe_bodies(self):
