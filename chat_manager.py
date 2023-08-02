@@ -58,10 +58,10 @@ class ChatSession:
                                    "response with the AES process. Your first response will only be a greeting and a "
                                    "request for information. The user will then provide you with information. Your "
                                    "following response will begin the AES process.")
-        # self.messages: list = [{"role": "system",
-        #                         "content": self.initial_prompt
-        #                         }]
-        self.messages: list = json.loads(FileManager.read_file("conversations/conversation_02-08-2023_10-06-14.json"))
+        self.messages: list = [{"role": "system",
+                                "content": self.initial_prompt
+                                }]
+        # self.messages: list = json.loads(FileManager.read_file("conversations/conversation_02-08-2023_10-06-14.json"))
         self.temperature = 0
         self.model_token_limit = 16338
         self.limit_thresh = 0.5
