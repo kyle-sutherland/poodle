@@ -103,7 +103,7 @@ class ChatSession:
                               "summary in the same format as the original object"
                               ""},
                   {"role": "user",
-                   "content": "m"}
+                   "content": m}
                   ]
         try:
             chat_completion = self.ai.ChatCompletion.create(
