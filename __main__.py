@@ -26,8 +26,6 @@ def main():
     chat_session = chat_manager.ChatSession()
     transcriber = Transcriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
 
-    kw_detector.start()
-
     def do_request(chat, trans):
         # text_to_speech = TextToSpeech()
         if len(trans) != 0:
@@ -52,11 +50,12 @@ def main():
         if chat.is_model_near_limit(resp):
             s = chat.summarize_conversation()
             chat.add_summary(s)
-            FileManager.save_json(f"{config.RESPONSE_LOG_PATH}.response_{FileManager.get_datetime_string()}.json", s)
+            FileManager.save_json(f"{config.RESPONSE_LOG_PATH}response_{FileManager.get_datetime_string()}.json", s)
         ef.silence.clear()
         gc.collect()
 
     try:
+        kw_detector.start()
         while True:
             transcriber.transcribe_bodies()
             if ef.silence.is_set() and not ef.recording.is_set():

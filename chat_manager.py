@@ -1,8 +1,8 @@
 # chat_manager.py
 import ast
-import os
 import openai
 import config
+from file_manager import FileManager
 
 
 def extract_trans_text(content) -> list:
@@ -26,7 +26,7 @@ class ChatSession:
 
     def __init__(self, initial_prompt: str = None, model: str = None):
         self.ai = openai
-        self.ai.api_key = os.getenv('OPENAI_API_KEY')
+        self.ai.api_key = FileManager.read_file("api_keys/keys")
         self.ai.organization = "org-9YiPG54UMFObNmQ2TMOnPCar"
         if model is None:
             self.model = 'gpt-3.5-turbo-16k-0613'
@@ -45,7 +45,7 @@ class ChatSession:
                                    "response. Your response has no designated structure. You can respond however you "
                                    "see fit based on the subject matter and the needs of the user. This can be a "
                                    "paragraph, numbered list, code block, other, or multiple types] Possible "
-                                   "Questions:[ask any relevant questions (maximum of 3) pertaining to what "
+                                   "Questions:[ask any relevant questions (maximum of 4) pertaining to what "
                                    "additional information is needed from the user to improve the answers. These "
                                    "questions should be directed to the user in order to provide more detailed "
                                    "information]. You will retain this role for the entirety of our conversation, "
@@ -62,7 +62,7 @@ class ChatSession:
         # self.messages: list = json.loads(FileManager.read_file("conversations/conversation_02-08-2023_10-06-14.json"))
         self.temperature = 0
         self.model_token_limit = 16338
-        self.limit_thresh = 0.5
+        self.limit_thresh = 0.4
 
     def add_user_entry(self, content):
         speech = extract_trans_text(content)
@@ -105,8 +105,8 @@ class ChatSession:
                               "following structure:\n [{'role': 'user', 'content': '*content goes here*'}, "
                               "{'role': 'assistant', 'content': '*content goes here*'}]\n"
                               "The 'role' key defines a speaker in the conversation, while the 'content' key defines "
-                              "what that speaker said. Your goal is to summarize this conversation to less than ten "
-                              "percent percent of it's original length and return your summary in the same structure "
+                              "what that speaker said. Your task is to summarize this conversation to less than ten "
+                              "percent of it's original length and return your summary in the same structure "
                               "as the original object:\n"
                               "[{'role': 'user', 'content': '*content goes here*'}, "
                               "{'role': 'assistant', 'content': '*content goes here*'}]"},
@@ -124,9 +124,9 @@ class ChatSession:
             print(f"Error sending request: {e}")
             return self.error_completion
 
-    def add_summary(self, response):
+    def add_summary(self, summary):
         m = [self.messages[0]]
-        r: str = response["choices"][0]["message"]["content"]
+        r: str = summary["choices"][0]["message"]["content"]
         try:
             r_parsed = ast.literal_eval(r)
             for i in r_parsed:
