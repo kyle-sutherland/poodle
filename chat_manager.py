@@ -12,6 +12,11 @@ def extract_trans_text(content) -> list:
     return speech
 
 
+def extract_resp_content(resp) -> str:
+    reply = resp['choices'][0]['message']['content']
+    return reply
+
+
 class ChatSession:
     error_completion = {
         "choices": [
@@ -39,17 +44,21 @@ class ChatSession:
                                    "appropriate field and occupation of the expert that would best answer the "
                                    "question. You will then take on the role of that expert and respond to the user's "
                                    "questions with the knowledge and understanding of that particular field, "
-                                   "offering the best possible answers to the best of your abilities. Your response "
-                                   "will include the following sections:  Expert Role:[assumed role] Objective:["
+                                   "offering the most thorough possible answers to the best of your abilities. Your "
+                                   "response"
+                                   "will always include the following sections:  Expert Role:[assumed role] Objective:["
                                    "single concise sentence for the current objective] Response: [provide your "
                                    "response. Your response has no designated structure. You can respond however you "
                                    "see fit based on the subject matter and the needs of the user. This can be a "
-                                   "paragraph, numbered list, code block, other, or multiple types] Possible "
-                                   "Questions:[ask any relevant questions (maximum of 4) pertaining to what "
+                                   "paragraph, numbered list, code block, other, or multiple types. Be creative. You "
+                                   "do not always have to stick to one type] Possible"
+                                   "Questions:[ask any relevant questions (maximum of 3) pertaining to what "
                                    "additional information is needed from the user to improve the answers. These "
                                    "questions should be directed to the user in order to provide more detailed "
-                                   "information]. You will retain this role for the entirety of our conversation, "
-                                   "however if the conversation with the user transitions to a topic which requires "
+                                   "information. Avoid asking general questions like, 'is there anything else you "
+                                   "would like to know about...']. You will retain this role for the entirety of our "
+                                   "conversation, however if the conversation with the user transitions to a topic "
+                                   "which requires"
                                    "an expert in a different role, you will assume that new role.  Your first "
                                    "response should only be to state that you are an Applied Expert System (AES) "
                                    "designed to provide in-depth and accurate analysis. Do not start your first "
@@ -64,8 +73,8 @@ class ChatSession:
         self.model_token_limit = 16338
         self.limit_thresh = 0.4
 
-    def add_user_entry(self, content):
-        speech = extract_trans_text(content)
+    def add_user_entry(self, trans):
+        speech = extract_trans_text(trans)
         for i in speech:
             if i is not None or "":
                 self.messages.append(
@@ -74,22 +83,46 @@ class ChatSession:
             else:
                 pass
 
-    def is_model_near_limit(self, response) -> bool:
+    def is_model_near_limit_thresh(self, response) -> bool:
         if response["usage"]["total_tokens"] > self.model_token_limit * self.limit_thresh:
             return True
         else:
             return False
 
-    def add_reply_entry(self, response):
-        reply = response['choices'][0]['message']
-        self.messages.append(reply)
+    def add_reply_entry(self, resp):
+        reply = extract_resp_content(resp)
+        if reply is not None or "":
+            self.messages.append(
+                {"role": "assistant", "content": reply},
+            )
+        else:
+            pass
+
+    def extract_streamed_resp_deltas(self, resp):
+        # this is messy. Could be improved with the use of a thread pool and a Queue
+        collected_chunks = []
+        collected_messages = []
+        # iterate through the stream of events
+        for chunk in resp:
+            chunk_message = chunk['choices'][0]['delta']
+            if 'content' in chunk_message.keys():
+                collected_messages.append(chunk_message)
+                print(chunk_message['content'], end='')
+            else:
+                collected_messages.append(chunk_message)
+            collected_chunks.append(chunk)
+        full_reply_content = ''.join([m.get('content', '') for m in collected_messages])
+        self.messages.append({"role": "assistant", "content": full_reply_content})
+        tstamp = FileManager.get_datetime_string()
+        FileManager.save_json(f'{config.RESPONSE_LOG_PATH}response_{tstamp}.json', collected_chunks)
 
     def send_request(self):
         try:
             chat_completion = self.ai.ChatCompletion.create(
                 model=self.model,
                 messages=self.messages,
-                temperature=self.temperature
+                temperature=self.temperature,
+                stream=config.STREAM_RESPONSE
             )
             return chat_completion
 

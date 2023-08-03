@@ -70,8 +70,8 @@ class KeywordDetector(threading.Thread):
             self.executor.submit(listener, data)
 
     def close(self):
-        self.running.clear()
         self.executor.shutdown()
+        self.running.clear()
         self.fetcher.stop()  # use the stop method of AudioFetcher
 
 
@@ -156,18 +156,17 @@ class AudioRecorder(threading.Thread):
         self.stream = None
 
     def start_recording(self):
-        stream = self.pa.open(format=config.PYAUDIO_FORMAT,
-                              channels=config.PYAUDIO_CHANNELS,
-                              rate=self.sample_rate, input=True,
-                              frames_per_buffer=self.frames_per_buffer)
+        self.stream = self.pa.open(format=config.PYAUDIO_FORMAT,
+                                   channels=config.PYAUDIO_CHANNELS,
+                                   rate=self.sample_rate, input=True,
+                                   frames_per_buffer=self.frames_per_buffer)
 
         ef.recording.set()
         print("recording started")
         self.frames.clear()
         while ef.recording.is_set():
-            data = stream.read(self.frames_per_buffer)
+            data = self.stream.read(self.frames_per_buffer)
             self.frames.append(data)
-        self.stream = stream
 
     def stop_recording(self, filepath):
         ef.recording.clear()
