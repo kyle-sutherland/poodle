@@ -3,7 +3,7 @@ import gc
 
 import chat_manager
 import kd_listeners
-from audio_utils import KeywordDetector, Transcriber
+from audio_utils import KeywordDetector, Transcriber, OnlineTranscriber
 from file_manager import FileManager
 import time
 import config
@@ -25,6 +25,7 @@ def main():
     ef.speaking.clear()
     chat_session = chat_manager.ChatSession()
     transcriber = Transcriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
+    online_transcriber = OnlineTranscriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
 
     def do_request(chat, trans):
         # text_to_speech = TextToSpeech()
@@ -57,7 +58,10 @@ def main():
     try:
         kw_detector.start()
         while True:
-            transcriber.transcribe_bodies()
+            if config.ONLINE_TRANSCRIBE:
+                online_transcriber.online_transcribe_bodies()
+            else:
+                transcriber.transcribe_bodies()
             if ef.silence.is_set() and not ef.recording.is_set():
                 transcriptions = FileManager.read_transcriptions(config.TRANSCRIPTION_PATH)
                 if len(chat_manager.extract_trans_text(transcriptions)) == 0:

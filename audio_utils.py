@@ -2,6 +2,8 @@
 import os
 import queue
 import wave
+
+import openai
 import pyaudio
 import torch.cuda
 import whisper
@@ -121,6 +123,26 @@ class Transcriber:
                 FileManager.save_json(f"{self.transcription_directory}transcription_{file}.json", result)
                 print(f"transcription completed in: "
                       f"{time.time() - t} seconds using device: {self.device}, model: {self.model}\n")
+
+
+class OnlineTranscriber:
+    def __init__(self, audio_directory, transcription_directory):
+        self.audio_directory = audio_directory
+        self.transcription_directory = transcription_directory
+        self.ai = openai
+        self.api_key = FileManager.read_file("api_keys/keys")
+
+    def online_transcribe_bodies(self):
+        while len(os.listdir(self.audio_directory)) != 0:
+            for file in os.listdir(self.audio_directory):
+                t = time.time()
+                f = open(f"{self.audio_directory}{file}", "rb")
+                result = self.ai.Audio.transcribe("whisper-1", f, response_format="verbose_json")
+                os.remove(f"{self.audio_directory}{file}")
+                file = file.rstrip(".wav")
+                FileManager.save_json(f"{self.transcription_directory}transcription_{file}.json", result)
+                print(f"transcription completed in: "
+                      f"{time.time() - t} seconds using api call\n")
 
 
 class AudioRecorder(threading.Thread):
