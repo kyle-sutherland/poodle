@@ -1,10 +1,8 @@
 # chat_manager.py
 import ast
-import json
 import os
 import openai
 import config
-from file_manager import FileManager
 
 
 def extract_trans_text(content) -> list:

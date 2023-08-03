@@ -120,8 +120,8 @@ class Transcriber:
                 os.remove(f"{self.audio_directory}{file}")
                 file = file.rstrip(".wav")
                 FileManager.save_json(f"{self.transcription_directory}transcription_{file}.json", result)
-                print(
-                    f"transcription completed in: {time.time() - t} seconds using device: {self.device}, model: {self.model}\n")
+                print(f"transcription completed in: "
+                      f"{time.time() - t} seconds using device: {self.device}, model: {self.model}\n")
 
 
 class AudioRecorder(threading.Thread):
