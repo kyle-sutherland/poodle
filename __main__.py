@@ -72,19 +72,13 @@ def main():
                 online_transcriber.online_transcribe_bodies()
             else:
                 transcriber.transcribe_bodies()
-
             if ef.silence.is_set() and not ef.recording.is_set():
                 transcriptions = FileManager.read_transcriptions(config.TRANSCRIPTION_PATH)
                 trans_text = chat_manager.extract_trans_text(transcriptions)
-                trans_text_str = ""
-                for i in trans_text:
-                    trans_text_str.join(i)
-                if len(trans_text_str) == 0:
+                if len(trans_text) == 0:
                     print("I didn't hear you")
                     ef.silence.clear()
                     continue
-                else:
-                    print(f"you said: {trans_text_str}")
                 do_request(chat_session, transcriptions)
                 convo = chat_session.messages
                 timestamp = FileManager.get_datetime_string()
