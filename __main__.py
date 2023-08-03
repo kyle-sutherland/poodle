@@ -15,19 +15,23 @@ def do_request(chat, trans):
     if len(trans) != 0:
         chat.add_user_entry(trans)
     resp = chat.send_request()
+
     if not config.STREAM_RESPONSE:
         chat.add_reply_entry(resp)
         tstamp = FileManager.get_datetime_string()
         FileManager.save_json(f'{config.RESPONSE_LOG_PATH}response_{tstamp}.json', resp)
         print(f'\n{resp["choices"][0]["message"]["content"]}\n')
         print(f"\ntotal response time: {time.time() - ef.stream_write_time} seconds\n")
+
     else:
         chat.extract_streamed_resp_deltas(resp)
+
     if not config.STREAM_RESPONSE:
         if chat.is_model_near_limit_thresh(resp):
             s = chat.summarize_conversation()
             chat.add_summary(s)
             FileManager.save_json(f"{config.RESPONSE_LOG_PATH}response_{FileManager.get_datetime_string()}.json", s)
+
     ef.silence.clear()
     gc.collect()
     # pyaudio currently seems to have issues in python 3.10. Going to try workarounds on the test branch
@@ -55,6 +59,7 @@ def main():
 
     if config.ENABLE_ACTIVE_SPEECH_LOG:
         kw_detector.add_partial_listener(kd_listeners.pl_print_active_speech_only)
+
     ef.speaking.clear()
     chat_session = chat_manager.ChatSession()
     transcriber = Transcriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
@@ -67,6 +72,7 @@ def main():
                 online_transcriber.online_transcribe_bodies()
             else:
                 transcriber.transcribe_bodies()
+
             if ef.silence.is_set() and not ef.recording.is_set():
                 transcriptions = FileManager.read_transcriptions(config.TRANSCRIPTION_PATH)
                 trans_text = chat_manager.extract_trans_text(transcriptions)
@@ -83,6 +89,7 @@ def main():
                 convo = chat_session.messages
                 timestamp = FileManager.get_datetime_string()
                 FileManager.save_json(f'{config.CONVERSATIONS_PATH}conversation_{timestamp}.json', convo)
+
             time.sleep(0.1)
     except KeyboardInterrupt:
         print("Closing the program")
