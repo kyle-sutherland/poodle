@@ -13,3 +13,4 @@ PATH_PROMPT_BODIES_AUDIO = "prompt_bodies_audio/"
 TRANSCRIPTION_PATH = "body_transcriptions/"
 CONVERSATIONS_PATH = 'conversations/'
 RESPONSE_LOG_PATH = 'response_log/'
+ONLINE_TRANSCRIBE = True
