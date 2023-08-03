@@ -23,7 +23,6 @@ def kwl_start_recording(keyword, data, stream_write_time):
     event_flags.stream_write_time = stream_write_time
     silence_watcher.reset()
     audio_recorder.start_recording()
-    event_flags.listening.set()
 
 
 def pl_print_all_partials(partial_result):

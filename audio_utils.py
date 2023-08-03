@@ -78,7 +78,6 @@ class AudioQueueFetcher(threading.Thread):
         threading.Thread.__init__(self)
         self.audio_queue = audio_queue
         self.running = running
-
         self.pa = pyaudio.PyAudio()
         self.channels = channels
         self.frames_per_buffer = frames_per_buffer
@@ -143,7 +142,6 @@ class AudioRecorder(threading.Thread):
         ef.recording.set()
         print("recording started")
         self.frames.clear()
-        stream.start_stream()
         while ef.recording.is_set():
             data = stream.read(self.frames_per_buffer)
             self.frames.append(data)
