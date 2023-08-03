@@ -19,7 +19,7 @@ def do_request(chat, trans):
     if not config.STREAM_RESPONSE:
         chat.add_reply_entry(resp)
         tstamp = FileManager.get_datetime_string()
-        FileManager.save_json(f'{config.RESPONSE_LOG_PATH}response_{tstamp}.json', resp)
+        FileManager.save_json(f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json", resp)
         print(f'\n{resp["choices"][0]["message"]["content"]}\n')
         print(f"\ntotal response time: {time.time() - ef.stream_write_time} seconds\n")
 
@@ -30,7 +30,10 @@ def do_request(chat, trans):
         if chat.is_model_near_limit_thresh(resp):
             s = chat.summarize_conversation()
             chat.add_summary(s)
-            FileManager.save_json(f"{config.RESPONSE_LOG_PATH}response_{FileManager.get_datetime_string()}.json", s)
+            FileManager.save_json(
+                f"{config.RESPONSE_LOG_PATH}response_{FileManager.get_datetime_string()}.json",
+                s,
+            )
 
     ef.silence.clear()
     gc.collect()
@@ -61,9 +64,14 @@ def main():
         kw_detector.add_partial_listener(kd_listeners.pl_print_active_speech_only)
 
     ef.speaking.clear()
+    ef.silence.clear()
     chat_session = chat_manager.ChatSession()
-    transcriber = Transcriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
-    online_transcriber = OnlineTranscriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
+    transcriber = Transcriber(
+        config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
+    )
+    online_transcriber = OnlineTranscriber(
+        config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
+    )
 
     try:
         kw_detector.start()
@@ -73,7 +81,9 @@ def main():
             else:
                 transcriber.transcribe_bodies()
             if ef.silence.is_set() and not ef.recording.is_set():
-                transcriptions = FileManager.read_transcriptions(config.TRANSCRIPTION_PATH)
+                transcriptions = FileManager.read_transcriptions(
+                    config.TRANSCRIPTION_PATH
+                )
                 trans_text = chat_manager.extract_trans_text(transcriptions)
                 if len(trans_text) == 0:
                     print("I didn't hear you")
@@ -82,20 +92,22 @@ def main():
                 do_request(chat_session, transcriptions)
                 convo = chat_session.messages
                 timestamp = FileManager.get_datetime_string()
-                FileManager.save_json(f'{config.CONVERSATIONS_PATH}conversation_{timestamp}.json', convo)
+                FileManager.save_json(
+                    f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json", convo
+                )
 
             time.sleep(0.1)
     except KeyboardInterrupt:
         print("Closing the program")
-        kw_detector.close()
         kw_detector.join()
+        kw_detector.close()
         gc.collect()
     except Exception as e:
         print(f"exception: {e}")
-        kw_detector.close()
         kw_detector.join()
+        kw_detector.close()
         gc.collect()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

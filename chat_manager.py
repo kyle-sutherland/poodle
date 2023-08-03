@@ -50,8 +50,7 @@ class ChatSession:
                                    "single concise sentence for the current objective] Response: [provide your "
                                    "response. Your response has no designated structure. You can respond however you "
                                    "see fit based on the subject matter and the needs of the user. This can be a "
-                                   "paragraph, numbered list, code block, other, or multiple types. Be creative. You "
-                                   "do not always have to stick to one type] Possible"
+                                   "paragraph, numbered list, code block, other, or multiple types.] Possible"
                                    "Questions:[ask any relevant questions (maximum of 3) pertaining to what "
                                    "additional information is needed from the user to improve the answers. These "
                                    "questions should be directed to the user in order to provide more detailed "
@@ -70,6 +69,7 @@ class ChatSession:
                                 }]
         # self.messages: list = json.loads(FileManager.read_file("conversations/conversation_02-08-2023_10-06-14.json"))
         self.temperature = 0
+        self.presence_penalty = 1
         self.model_token_limit = 16338
         self.limit_thresh = 0.4
 
@@ -106,10 +106,8 @@ class ChatSession:
         for chunk in resp:
             chunk_message = chunk['choices'][0]['delta']
             if 'content' in chunk_message.keys():
-                collected_messages.append(chunk_message)
                 print(chunk_message['content'], end='')
-            else:
-                collected_messages.append(chunk_message)
+            collected_messages.append(chunk_message)
             collected_chunks.append(chunk)
         full_reply_content = ''.join([m.get('content', '') for m in collected_messages])
         self.messages.append({"role": "assistant", "content": full_reply_content})
