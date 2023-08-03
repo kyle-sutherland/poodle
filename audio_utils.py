@@ -50,7 +50,8 @@ class KeywordDetector(threading.Thread):
                 partial_result = self.recognizer.PartialResult()
                 if partial_result:
                     self.notify_partial_listeners(partial_result)
-                time.sleep(0.05)
+                time.sleep(0.01)
+            self.executor.shutdown()
         except queue.Empty:
             print("Queue is empty.")
         except Exception as e:
@@ -71,7 +72,6 @@ class KeywordDetector(threading.Thread):
             self.executor.submit(listener, data)
 
     def close(self):
-        self.executor.shutdown()
         self.running.clear()
         self.fetcher.stop()  # use the stop method of AudioFetcher
 
@@ -104,7 +104,6 @@ class AudioQueueFetcher(threading.Thread):
         while self.running.is_set():
             data = stream.read(self.frames_per_buffer)
             self.audio_queue.put((time.time(), data))
-            time.sleep(0.05)
         stream.stop_stream()
         stream.close()
         self.pa.terminate()

@@ -76,11 +76,11 @@ def main():
     try:
         kw_detector.start()
         while True:
-            if config.ONLINE_TRANSCRIBE:
-                online_transcriber.online_transcribe_bodies()
-            else:
-                transcriber.transcribe_bodies()
             if ef.silence.is_set() and not ef.recording.is_set():
+                if config.ONLINE_TRANSCRIBE:
+                    online_transcriber.online_transcribe_bodies()
+                else:
+                    transcriber.transcribe_bodies()
                 transcriptions = FileManager.read_transcriptions(
                     config.TRANSCRIPTION_PATH
                 )
@@ -95,16 +95,13 @@ def main():
                 FileManager.save_json(
                     f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json", convo
                 )
-
-            time.sleep(0.1)
+            time.sleep(0.01)
     except KeyboardInterrupt:
-        print("Closing the program")
-        kw_detector.join()
+        print("\n\nClosing the program")
         kw_detector.close()
         gc.collect()
     except Exception as e:
         print(f"exception: {e}")
-        kw_detector.join()
         kw_detector.close()
         gc.collect()
 
