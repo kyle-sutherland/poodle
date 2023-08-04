@@ -12,11 +12,10 @@ import threading
 import time
 from TTS.api import TTS
 
-import chat_manager
 import config
 import event_flags as ef
 from file_manager import FileManager
-from vosk import Model, KaldiRecognizer
+import vosk
 from concurrent.futures import ThreadPoolExecutor
 from playsound import playsound
 
@@ -26,7 +25,9 @@ class KeywordDetector(threading.Thread):
         threading.Thread.__init__(self)
         self.stream_write_time = None
         self.keyword = keyword
-        self.model = Model(lang="en-us")
+        self.vosk = vosk
+        self.vosk.SetLogLevel(-1)
+        self.model = vosk.Model(lang="en-us")
         self.audio_queue = queue.Queue()
         self.keyword_listeners = []
         self.partial_listeners = []
@@ -39,7 +40,7 @@ class KeywordDetector(threading.Thread):
         )
         self.sample_rate = self.fetcher.sample_rate
         self.executor = ThreadPoolExecutor(max_listener_threads)
-        self.recognizer = KaldiRecognizer(self.model, self.sample_rate)
+        self.recognizer = vosk.KaldiRecognizer(self.model, self.sample_rate)
 
     def run(self):
         self.fetcher.start()
@@ -119,7 +120,6 @@ class Transcriber:
     def __init__(self, audio_directory, transcription_directory):
         self.audio_directory = audio_directory
         self.transcription_directory = transcription_directory
-        self.whisper = whisper
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = "base"
         self.mod = whisper.load_model(self.model, self.device)
@@ -166,9 +166,8 @@ class OnlineTranscriber:
                 )
 
 
-class AudioRecorder(threading.Thread):
+class AudioRecorder:
     def __init__(self):
-        threading.Thread.__init__(self)
         self.pa = pyaudio.PyAudio()
         self.default_device_info = self.pa.get_default_input_device_info()
         self.sample_rate = int(self.default_device_info["defaultSampleRate"])

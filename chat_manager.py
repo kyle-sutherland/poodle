@@ -120,7 +120,7 @@ class ChatSession:
         for chunk in resp:
             chunk_message = chunk["choices"][0]["delta"]
             if "content" in chunk_message.keys():
-                sim_typing_output(chunk_message["content"])
+                print(chunk_message["content"], end="", flush=True)
             collected_messages.append(chunk_message)
             collected_chunks.append(chunk)
         print("\n\n")

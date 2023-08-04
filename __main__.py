@@ -1,6 +1,7 @@
 # __main__.py
 import gc
 import logging
+import warnings
 
 import chat_manager
 import kd_listeners
@@ -54,20 +55,25 @@ def do_request(chat, trans):
 
 
 def main():
+    # this is messy.
+    # TODO: properly implement logging
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.CRITICAL + 1)
+    print("\nLoading...\n")
+    # initialize kw_detector
     kw_detector = KeywordDetector("computer")
+    # add keyword_detector event listeners
     kw_detector.add_keyword_listener(kd_listeners.kwl_start_recording)
     kw_detector.add_partial_listener(lambda pr: kd_listeners.pl_no_speech(pr))
-
     kw_detector.add_keyword_listener(kd_listeners.kwl_print_keyword_message)
-
     if config.ENABLE_ALL_PARTIAL_RESULT_LOG:
         kw_detector.add_partial_listener(kd_listeners.pl_print_all_partials)
-
     if config.ENABLE_ACTIVE_SPEECH_LOG:
         kw_detector.add_partial_listener(kd_listeners.pl_print_active_speech_only)
-
+    # set global event flags
     ef.speaking.clear()
     ef.silence.clear()
+    # initialize other modules
     chat_session = chat_manager.ChatSession()
     transcriber = Transcriber(
         config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
@@ -78,37 +84,44 @@ def main():
 
     try:
         kw_detector.start()
-        logging.info("ready")
+        print("Ready.\n")
         while True:
             if ef.silence.is_set() and not ef.recording.is_set():
-                if config.ONLINE_TRANSCRIBE:
-                    online_transcriber.online_transcribe_bodies()
-                else:
-                    transcriber.transcribe_bodies()
-                transcriptions = FileManager.read_transcriptions(
-                    config.TRANSCRIPTION_PATH
-                )
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    if config.ONLINE_TRANSCRIBE:
+                        online_transcriber.online_transcribe_bodies()
+                    else:
+                        transcriber.transcribe_bodies()
+                    transcriptions = FileManager.read_transcriptions(
+                        config.TRANSCRIPTION_PATH
+                    )
                 trans_text = chat_manager.extract_trans_text(transcriptions)
                 if len(trans_text) == 0:
                     print("I didn't hear you")
                     ef.silence.clear()
                     continue
-                print(f"You said:\n{trans_text}\n")
-                chat_manager.sim_typing_output("Replying...\n")
-                do_request(chat_session, transcriptions)
-                convo = chat_session.messages
-                timestamp = FileManager.get_datetime_string()
-                FileManager.save_json(
-                    f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json", convo
+                chat_manager.sim_typing_output(
+                    f"I heard:\n   {trans_text[0]}\n\n Replying...\n\n"
                 )
+                do_request(chat_session, transcriptions)
+
             time.sleep(0.1)
-    except KeyboardInterrupt:
-        print("\n\nClosing the program")
-        kw_detector.close()
-        gc.collect()
     except Exception as e:
-        logging.critical(f"exception: {e}")
+        logging.error(f"exception: {e}")
         kw_detector.close()
+        kw_detector.join()
+        gc.collect()
+    except KeyboardInterrupt:
+        # save conversation:
+        convo = chat_session.messages
+        timestamp = FileManager.get_datetime_string()
+        FileManager.save_json(
+            f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json", convo
+        )
+        print("\n\nGoodbye.")
+        kw_detector.close()
+        kw_detector.join()
         gc.collect()
 
 
