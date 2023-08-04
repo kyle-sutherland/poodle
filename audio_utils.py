@@ -192,21 +192,15 @@ class AudioRecorder:
         self.stream = stream
 
     def stop_recording(self, filepath):
-        ef.recording.clear()
-        self.stream.close()
-        self.stream.stop_stream()
         sound_file = wave.open(filepath, "wb")
         sound_file.setnchannels(config.PYAUDIO_CHANNELS)
         sound_file.setsampwidth(self.pa.get_sample_size(pyaudio.paInt16))
         sound_file.setframerate(self.sample_rate)
         sound_file.writeframes(b"".join(self.frames))
+        self.stream.close()
+        self.stream.stop_stream()
+        ef.recording.clear()
         logging.info("recording saved")
-
-    def start(self):
-        self.start_recording()
-
-    def stop(self, filepath):
-        self.stop_recording(filepath)
 
 
 class SilenceWatcher:
