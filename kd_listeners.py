@@ -1,6 +1,9 @@
 # kd_listeners.py
+import logging
 import time
 import json
+
+import chat_manager
 import config
 import event_flags
 from audio_utils import Transcriber, AudioRecorder, SilenceWatcher
@@ -13,10 +16,10 @@ transcriber = Transcriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_
 
 def kwl_print_keyword_message(keyword, data, stream_write_time):
     trigger_time = time.time() - stream_write_time
-    print(f"Time from stream write to keyword trigger: {trigger_time} seconds")
-    print("  ")
-    print(f"{keyword}!!")
-    print("  ")
+    logging.info(f"\nTime from stream write to keyword trigger: {trigger_time} seconds")
+    print("\n")
+    chat_manager.sim_typing_output(f"This is {keyword}. I am listening", 0.03)
+    print("\n")
 
 
 def kwl_start_recording(keyword, data, stream_write_time):
@@ -43,5 +46,7 @@ def pl_no_speech(partial_result):
         if silence_watcher.check_silence(pr):
             event_flags.silence.set()
             timestamp = FileManager.get_datetime_string()
-            audio_recorder.stop_recording(f"{config.PATH_PROMPT_BODIES_AUDIO}body_{timestamp}.wav")
+            audio_recorder.stop_recording(
+                f"{config.PATH_PROMPT_BODIES_AUDIO}body_{timestamp}.wav"
+            )
             silence_watcher.reset()

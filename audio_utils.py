@@ -1,4 +1,5 @@
 # audio_utils.py
+import logging
 import os
 import queue
 import wave
@@ -10,6 +11,8 @@ import whisper
 import threading
 import time
 from TTS.api import TTS
+
+import chat_manager
 import config
 import event_flags as ef
 from file_manager import FileManager
@@ -50,12 +53,12 @@ class KeywordDetector(threading.Thread):
                 partial_result = self.recognizer.PartialResult()
                 if partial_result:
                     self.notify_partial_listeners(partial_result)
-                time.sleep(0.01)
+                time.sleep(0.1)
             self.executor.shutdown()
         except queue.Empty:
-            print("Queue is empty.")
+            logging.error("Queue is empty.")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logging.critical(f"An error occurred: {e}")
 
     def add_keyword_listener(self, listener_func):
         self.keyword_listeners.append(listener_func)
@@ -131,7 +134,7 @@ class Transcriber:
                 FileManager.save_json(
                     f"{self.transcription_directory}transcription_{file}.json", result
                 )
-                print(
+                logging.info(
                     f"transcription completed in: "
                     f"{time.time() - t} seconds using device: {self.device}, model: {self.model}\n"
                 )
@@ -181,14 +184,13 @@ class AudioRecorder(threading.Thread):
             input=True,
             frames_per_buffer=self.frames_per_buffer,
         )
-
         ef.recording.set()
-        print("recording started")
+        logging.info("recording started")
         self.frames.clear()
-        self.stream = stream
         while ef.recording.is_set():
             data = stream.read(self.frames_per_buffer)
             self.frames.append(data)
+        self.stream = stream
 
     def stop_recording(self, filepath):
         ef.recording.clear()
@@ -199,7 +201,7 @@ class AudioRecorder(threading.Thread):
         sound_file.setsampwidth(self.pa.get_sample_size(pyaudio.paInt16))
         sound_file.setframerate(self.sample_rate)
         sound_file.writeframes(b"".join(self.frames))
-        print("recording saved")
+        logging.info("recording saved")
 
     def start(self):
         self.start_recording()
@@ -209,7 +211,7 @@ class AudioRecorder(threading.Thread):
 
 
 class SilenceWatcher:
-    def __init__(self, silence_threshold=12, silence_duration=1.6):
+    def __init__(self, silence_threshold=12, silence_duration=1.7):
         self.silence_threshold = silence_threshold
         self.silence_duration = silence_duration
         self.silence_counter = 0
@@ -223,7 +225,7 @@ class SilenceWatcher:
                 if not self.silence_start_time:
                     self.silence_start_time = time.time()
                 elif time.time() - self.silence_start_time >= self.silence_duration:
-                    print("silence detected")
+                    logging.info("silence detected")
                     return True
         else:
             self.reset()

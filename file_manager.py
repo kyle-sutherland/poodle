@@ -1,4 +1,5 @@
 # file_manager.py
+import logging
 import os
 from datetime import datetime
 import config
@@ -29,7 +30,7 @@ class FileManager:
 
     @staticmethod
     def save_json(file_name, content):
-        with open(file_name, 'w') as f:
+        with open(file_name, "w") as f:
             json.dump(content, fp=f, indent=4)
 
     @staticmethod
@@ -51,12 +52,12 @@ class FileManager:
                                 transcription = json.load(f)
                                 transcriptions.append(transcription)
                             except ValueError as e:
-                                print(f"Error reading {file_path}: {e}")
+                                logging.error(f"Error reading {file_path}: {e}")
                         FileManager.mark_as_read(file)
                     else:
-                        print(f"File {file_path} is empty.")
+                        logging.error(f"File {file_path} is empty.")
                 else:
-                    print(f"File {file_path} does not exist.")
+                    logging.error(f"File {file_path} does not exist.")
             else:
                 continue
         return transcriptions

@@ -1,5 +1,6 @@
 # chat_manager.py
 import ast
+import logging
 from time import sleep
 
 import openai
@@ -19,12 +20,12 @@ def extract_resp_content(resp) -> str:
     return reply
 
 
-def typing_simulator(text: str):
+def sim_typing_output(text: str, delay: float = 0.01):
     # a function to simulate typing in  the terminal output
     for i in text:
         # print each character individually with a small delay in between.
         print(i, end="", flush=True)
-        sleep(0.01)
+        sleep(delay)
 
 
 class ChatSession:
@@ -119,9 +120,10 @@ class ChatSession:
         for chunk in resp:
             chunk_message = chunk["choices"][0]["delta"]
             if "content" in chunk_message.keys():
-                print(chunk_message["content"], end="", flush=True)
+                sim_typing_output(chunk_message["content"])
             collected_messages.append(chunk_message)
             collected_chunks.append(chunk)
+        print("\n\n")
         full_reply_content = "".join([m.get("content", "") for m in collected_messages])
         self.messages.append({"role": "assistant", "content": full_reply_content})
         tstamp = FileManager.get_datetime_string()
@@ -140,7 +142,7 @@ class ChatSession:
             return chat_completion
 
         except Exception as e:
-            print(f"Error sending request: {e}")
+            logging.error(f"Error sending request: {e}")
             return self.error_completion
 
     def summarize_conversation(self):

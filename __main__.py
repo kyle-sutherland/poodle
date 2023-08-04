@@ -1,5 +1,6 @@
 # __main__.py
 import gc
+import logging
 
 import chat_manager
 import kd_listeners
@@ -21,7 +22,9 @@ def do_request(chat, trans):
         tstamp = FileManager.get_datetime_string()
         FileManager.save_json(f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json", resp)
         print(f'\n{resp["choices"][0]["message"]["content"]}\n')
-        print(f"\ntotal response time: {time.time() - ef.stream_write_time} seconds\n")
+        logging.info(
+            f"\ntotal response time: {time.time() - ef.stream_write_time} seconds\n"
+        )
 
     else:
         chat.extract_streamed_resp_deltas(resp)
@@ -75,6 +78,7 @@ def main():
 
     try:
         kw_detector.start()
+        logging.info("ready")
         while True:
             if ef.silence.is_set() and not ef.recording.is_set():
                 if config.ONLINE_TRANSCRIBE:
@@ -89,19 +93,21 @@ def main():
                     print("I didn't hear you")
                     ef.silence.clear()
                     continue
+                print(f"You said:\n{trans_text}\n")
+                chat_manager.sim_typing_output("Replying...\n")
                 do_request(chat_session, transcriptions)
                 convo = chat_session.messages
                 timestamp = FileManager.get_datetime_string()
                 FileManager.save_json(
                     f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json", convo
                 )
-            time.sleep(0.01)
+            time.sleep(0.1)
     except KeyboardInterrupt:
         print("\n\nClosing the program")
         kw_detector.close()
         gc.collect()
     except Exception as e:
-        print(f"exception: {e}")
+        logging.critical(f"exception: {e}")
         kw_detector.close()
         gc.collect()
 
