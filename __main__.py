@@ -87,16 +87,16 @@ def main():
         kw_detector.start()
         print("Ready.\n")
         while True:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                if config.ONLINE_TRANSCRIBE:
+                    online_transcriber.online_transcribe_bodies()
+                else:
+                    transcriber.transcribe_bodies()
             if ef.silence.is_set() and not ef.recording.is_set():
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    if config.ONLINE_TRANSCRIBE:
-                        online_transcriber.online_transcribe_bodies()
-                    else:
-                        transcriber.transcribe_bodies()
-                    transcriptions = FileManager.read_transcriptions(
-                        config.TRANSCRIPTION_PATH
-                    )
+                transcriptions = FileManager.read_transcriptions(
+                    config.TRANSCRIPTION_PATH
+                )
                 trans_text = chat_manager.extract_trans_text(transcriptions)
                 if len(trans_text) == 0:
                     print("I didn't hear you")

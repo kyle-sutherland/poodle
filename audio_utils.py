@@ -148,7 +148,7 @@ class OnlineTranscriber:
         self.api_key = FileManager.read_file("api_keys/keys")
 
     def online_transcribe_bodies(self):
-        while len(os.listdir(self.audio_directory)) != 0:
+        if len(os.listdir(self.audio_directory)) != 0:
             for file in os.listdir(self.audio_directory):
                 t = time.time()
                 f = open(f"{self.audio_directory}{file}", "rb")
@@ -192,14 +192,14 @@ class AudioRecorder:
         self.stream = stream
 
     def stop_recording(self, filepath):
+        ef.recording.clear()
+        self.stream.close()
+        self.stream.stop_stream()
         sound_file = wave.open(filepath, "wb")
         sound_file.setnchannels(config.PYAUDIO_CHANNELS)
         sound_file.setsampwidth(self.pa.get_sample_size(pyaudio.paInt16))
         sound_file.setframerate(self.sample_rate)
         sound_file.writeframes(b"".join(self.frames))
-        self.stream.close()
-        self.stream.stop_stream()
-        ef.recording.clear()
         logging.info("recording saved")
 
 
