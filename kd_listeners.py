@@ -17,7 +17,7 @@ transcriber = Transcriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_
 def kwl_print_keyword_message(keyword, data, stream_write_time):
     trigger_time = time.time() - stream_write_time
     logging.info(f"Time from stream write to keyword trigger: {trigger_time} seconds")
-    chat_manager.sim_typing_output(f" This is {keyword}. I am listening", 0.03)
+    chat_manager.sim_typing_output(f" This is {keyword}. I am listening.", 0.02)
     print("\n")
 
 

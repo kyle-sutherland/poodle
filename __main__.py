@@ -1,6 +1,7 @@
 # __main__.py
 import gc
 import logging
+import threading
 import warnings
 
 import chat_manager
@@ -101,11 +102,12 @@ def main():
                     print("I didn't hear you")
                     ef.silence.clear()
                     continue
-                chat_manager.sim_typing_output(
-                    f"I heard:\n   {trans_text[0]}\n\n Replying...\n\n"
+                request_thread = threading.Thread(
+                    target=do_request(chat_session, transcriptions)
                 )
-                do_request(chat_session, transcriptions)
-
+                print(f"I heard:\n\n   {trans_text[0]}\n\n Replying...\n\n")
+                request_thread.start()
+                request_thread.join()
             time.sleep(0.1)
     except Exception as e:
         logging.error(f"exception: {e}")
