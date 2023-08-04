@@ -1,7 +1,6 @@
 # __main__.py
 import gc
 import logging
-import threading
 import warnings
 
 import chat_manager
@@ -87,13 +86,13 @@ def main():
         kw_detector.start()
         print("Ready.\n")
         while True:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                if config.ONLINE_TRANSCRIBE:
-                    online_transcriber.online_transcribe_bodies()
-                else:
-                    transcriber.transcribe_bodies()
             if ef.silence.is_set() and not ef.recording.is_set():
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    if config.ONLINE_TRANSCRIBE:
+                        online_transcriber.online_transcribe_bodies()
+                    else:
+                        transcriber.transcribe_bodies()
                 transcriptions = FileManager.read_transcriptions(
                     config.TRANSCRIPTION_PATH
                 )
@@ -102,12 +101,8 @@ def main():
                     print("I didn't hear you")
                     ef.silence.clear()
                     continue
-                request_thread = threading.Thread(
-                    target=do_request(chat_session, transcriptions)
-                )
                 print(f"I heard:\n\n   {trans_text[0]}\n\n Replying...\n\n")
-                request_thread.start()
-                request_thread.join()
+                do_request(chat_session, transcriptions)
             time.sleep(0.1)
     except Exception as e:
         logging.error(f"exception: {e}")
