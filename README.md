@@ -20,7 +20,7 @@ conda env create -f environment.yml
 ```bash
 mkdir ./conversations ./api_keys ./body_transcriptions ./prompt_bodies_audio ./response_log
 ```
-5. You will need an OpenAI API key. Grab yours and paste it into a file called 'keys' inside ./api_keys
+5. You will need an OpenAI API key. Grab yours and paste it into a file called `keys` inside `./api_keys`
 
 ### Installing PyTorch
 
