@@ -12,8 +12,18 @@ import config
 import event_flags as ef
 
 
-def do_request(chat, trans):
-    # text_to_speech = TextToSpeech()
+def do_request(chat: chat_manager.ChatSession, trans: list):
+    """Sends a request with the transcribed text and processes the response.
+
+    Parameters:
+    - chat (chat_manager.ChatSession): The current chat session.
+    - trans (str): The transcribed text to send.
+
+    Side Effects:
+    - Updates the chat session with user entries and replies.
+    - Saves responses as JSON files.
+    - Clears the 'silence' event flag.
+    """
     if len(trans) != 0:
         chat.add_user_entry(trans)
     resp = chat.send_request()
@@ -23,9 +33,7 @@ def do_request(chat, trans):
         tstamp = FileManager.get_datetime_string()
         FileManager.save_json(f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json", resp)
         print(f'\n{resp["choices"][0]["message"]["content"]}\n')
-        logging.info(
-            f"\ntotal response time: {time.time() - ef.stream_write_time} seconds\n"
-        )
+        logging.info(f"\ntotal response time: {time.time() - ef.stream_write_time} seconds\n")
 
     else:
         chat.extract_streamed_resp_deltas(resp)
@@ -34,29 +42,23 @@ def do_request(chat, trans):
         if chat.is_model_near_limit_thresh(resp):
             s = chat.summarize_conversation()
             chat.add_summary(s)
-            FileManager.save_json(
-                f"{config.RESPONSE_LOG_PATH}response_{FileManager.get_datetime_string()}.json",
-                s,
-            )
+            FileManager.save_json(f"{config.RESPONSE_LOG_PATH}response_{FileManager.get_datetime_string()}.json", s)
 
     ef.silence.clear()
     gc.collect()
-    # pyaudio currently seems to have issues in python 3.10. Going to try workarounds on the test branch
-    # ok. found a workaround: use playsound instead of pyaudio to play the file. Not ideal but works for now.
-    # may try to use python 3.9 at some point. This is insanely expensive and takes FOREVER. Going to try to figure
-    # that out, too.
-    # ef.speaking.set()
-    # text_to_speech.make_voice(resp["choices"][0]["message"]["content"])
-    # time.sleep(0.1)
-    # text_to_speech.play_voice()
-    # ef.speaking.clear()
-    # print("")
-    # del text_to_speech
 
 
 def main():
-    # this is messy.
-    # TODO: properly implement logging
+    """Main function to start the application.
+
+    Sets up logging, initializes modules, and enters a loop to listen for user input.
+    Transcribes the user input and sends it to get a response.
+
+    Side Effects:
+    - Continuously listens for user input until interrupted.
+    - Updates and saves chat sessions.
+    """
+    # Setting up logging
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.CRITICAL + 1)
     print("\nLoading...\n")
@@ -73,14 +75,11 @@ def main():
     # set global event flags
     ef.speaking.clear()
     ef.silence.clear()
-    # initialize other modules
+
+    # Initializing other modules
     chat_session = chat_manager.ChatSession()
-    transcriber = Transcriber(
-        config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
-    )
-    online_transcriber = OnlineTranscriber(
-        config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
-    )
+    transcriber = Transcriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
+    online_transcriber = OnlineTranscriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
 
     try:
         kw_detector.start()
@@ -93,9 +92,7 @@ def main():
                         online_transcriber.online_transcribe_bodies()
                     else:
                         transcriber.transcribe_bodies()
-                transcriptions = FileManager.read_transcriptions(
-                    config.TRANSCRIPTION_PATH
-                )
+                transcriptions = FileManager.read_transcriptions(config.TRANSCRIPTION_PATH)
                 trans_text = chat_manager.extract_trans_text(transcriptions)
                 if len(trans_text) == 0:
                     print("I didn't hear you")
@@ -110,12 +107,10 @@ def main():
         kw_detector.join()
         gc.collect()
     except KeyboardInterrupt:
-        # save conversation:
+        # Save conversation when interrupted
         convo = chat_session.messages
         timestamp = FileManager.get_datetime_string()
-        FileManager.save_json(
-            f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json", convo
-        )
+        FileManager.save_json(f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json", convo)
         print("\n\nGoodbye.")
         kw_detector.close()
         kw_detector.join()
