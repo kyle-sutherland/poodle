@@ -38,7 +38,7 @@ Replace `<environment_name>` with the name of the environment specified in the `
 ```bash
 python __main__.py
 ```
-
+To change the initial prompt, change the string contained in the property initial_prompt in the ChatSession class in chat_manager.py.
 ## Feedback and Contributions
 
 Feel free to provide feedback, report bugs, or make contributions to enhance the program's capabilities.
