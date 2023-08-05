@@ -10,13 +10,17 @@ The program continuously listens for a specific keyword. Once detected, it start
 
 ### Setting up the Environment
 
-1. Ensure you have [Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) installed on your system.
-2. Navigate to the project directory.
+1. Ensure you have [Conda or Miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) installed on your system.
+2. Open a terminal and navigate to the project directory.
 3. To create a Conda environment using the provided `environment.yml` file, run:
 ```bash
 conda env create -f environment.yml
 ```
-
+4. Create project folders, run:
+```bash
+mkdir ./conversations ./api_keys ./body_transcriptions ./prompt_bodies_audio ./response_log
+```
+5. You will need an OpenAI API key. Grab yours and paste it into a file called 'keys' inside ./api_keys
 
 ### Installing PyTorch
 
