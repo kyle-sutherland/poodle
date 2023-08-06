@@ -38,7 +38,7 @@ Replace `<environment_name>` with the name of the environment specified in the `
 ```bash
 python __main__.py
 ```
-To change the initial prompt, change the string contained in the property initial_prompt in the ChatSession class in chat_manager.py.
+The default keyword to start Poodle listening is "computer". After the program prints "Ready", simply speak the keyword and Poodle will begin the process of transcribing your speech until a pause is detected. It will then send the API request with the transcribed message. The To change the initial prompt, change the string contained in the property `initial_prompt` in the `ChatSession` class in `chat_manager.py`.
 ## Feedback and Contributions
 
 Feel free to provide feedback, report bugs, or make contributions to enhance the program's capabilities.
