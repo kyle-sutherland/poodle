@@ -42,6 +42,7 @@ class ChatSession:
 
     def __init__(self, initial_prompt: str = None, model: str = None):
         self.ai = openai
+        self.chat_config = json.load(open.) 
         self.ai.api_key = FileManager.read_file("api_keys/keys")
         self.ai.organization = "org-9YiPG54UMFObNmQ2TMOnPCar"
         if model is None:
