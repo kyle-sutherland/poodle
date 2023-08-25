@@ -30,6 +30,14 @@ class FileManager:
         """ Read content from a file. """
         with open(file_path, "r") as infile:
             return infile.read()
+    
+    @staticmethod
+    def read_json(file_path: str) -> dict:
+        """ read json file and return contents as dict """
+        data = None
+        with open(file_path, "r") as infile:
+            data = json.load(infile)
+        return data
 
     @staticmethod
     def delete_transcription(file_name: str):

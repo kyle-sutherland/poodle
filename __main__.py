@@ -33,7 +33,9 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
         tstamp = FileManager.get_datetime_string()
         FileManager.save_json(f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json", resp)
         print(f'\n{resp["choices"][0]["message"]["content"]}\n')
-        logging.info(f"\ntotal response time: {time.time() - ef.stream_write_time} seconds\n")
+        logging.info(
+            f"\ntotal response time: {time.time() - ef.stream_write_time} seconds\n"
+        )
 
     else:
         chat.extract_streamed_resp_deltas(resp)
@@ -42,7 +44,10 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
         if chat.is_model_near_limit_thresh(resp):
             s = chat.summarize_conversation()
             chat.add_summary(s)
-            FileManager.save_json(f"{config.RESPONSE_LOG_PATH}response_{FileManager.get_datetime_string()}.json", s)
+            FileManager.save_json(
+                f"{config.RESPONSE_LOG_PATH}response_{FileManager.get_datetime_string()}.json",
+                s,
+            )
 
     ef.silence.clear()
     gc.collect()
@@ -62,6 +67,8 @@ def main():
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.CRITICAL + 1)
     print("\nLoading...\n")
+    # load chat_config
+    chat_config = FileManager.read_json("chat_config.json")
     # initialize kw_detector
     kw_detector = KeywordDetector("computer")
     # add keyword_detector event listeners
@@ -77,9 +84,13 @@ def main():
     ef.silence.clear()
 
     # Initializing other modules
-    chat_session = chat_manager.ChatSession()
-    transcriber = Transcriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
-    online_transcriber = OnlineTranscriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
+    chat_session = chat_manager.ChatSession(chat_config["prompt"], chat_config["model"], chat_config["temperature"], chat_config["presence_penalty"], chat_config["token_limit"], chat_config["limit_thresh"])
+    transcriber = Transcriber(
+        config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
+    )
+    online_transcriber = OnlineTranscriber(
+        config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
+    )
 
     try:
         kw_detector.start()
@@ -92,7 +103,9 @@ def main():
                         online_transcriber.online_transcribe_bodies()
                     else:
                         transcriber.transcribe_bodies()
-                transcriptions = FileManager.read_transcriptions(config.TRANSCRIPTION_PATH)
+                transcriptions = FileManager.read_transcriptions(
+                    config.TRANSCRIPTION_PATH
+                )
                 trans_text = chat_manager.extract_trans_text(transcriptions)
                 if len(trans_text) == 0:
                     print("I didn't hear you")
@@ -110,7 +123,9 @@ def main():
         # Save conversation when interrupted
         convo = chat_session.messages
         timestamp = FileManager.get_datetime_string()
-        FileManager.save_json(f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json", convo)
+        FileManager.save_json(
+            f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json", convo
+        )
         print("\n\nGoodbye.")
         kw_detector.close()
         kw_detector.join()
