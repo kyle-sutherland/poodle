@@ -40,7 +40,7 @@ class ChatSession:
         ]
     }
 
-    def __init__(self, initial_prompt: str, model: str, temperature: float, presence_penalty: float, token_limit: int, limit_thresh: float):
+    def __init__(self, initial_prompt: str = None, model: str = None, temperature: float = None, presence_penalty: float = None, token_limit: int = None, limit_thresh: float = None):
         self.ai = openai
         self.ai.api_key = FileManager.read_file("api_keys/keys")
         self.ai.organization = "org-9YiPG54UMFObNmQ2TMOnPCar"
