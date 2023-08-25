@@ -24,4 +24,4 @@ RESPONSE_LOG_PATH = 'response_log/'  # Path to store response logs
 ONLINE_TRANSCRIBE = False  # Use online transcription service
 
 # Determines whether the response should be streamed or not
-STREAM_RESPONSE = True
+STREAM_RESPONSE = False
