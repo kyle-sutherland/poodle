@@ -1,7 +1,22 @@
 {
-  "model": "gpt-3.5-turbo-16k-0613",
-  "temperature": 0,
-  "presence_penalty": 1,
-  "limit_thresh": 0.4,
-  "token_limit": 16338
+  "gpt-3.5-turbo-16k-0613":{
+    "name": "gpt-3.5-turbo-16k-0613",
+    "limit_thresh": 0.4,
+    "token_limit": 16384
+  },
+  "gpt-3.5-turbo-0613":{
+    "name": "gpt-3.5-turbo-0613",
+    "limit_thresh": 0.4,
+    "token_limit": 4096
+  },
+  "gpt-3.5-turbo":{
+    "name": "gpt-3.5-turbo",
+    "limit_thresh": 0.4,
+    "token_limit": 4096 
+  },
+  "gpt-3.5-16k":{
+    "name":"gpt-3.5-turbo-16k",
+    "limit_thresh": 0.4,
+    "token_limit": 16384
+  }
 }

@@ -69,6 +69,8 @@ def main():
     print("\nLoading...\n")
     # load chat_config
     chat_config = FileManager.read_json("chat_config.json")
+    model = FileManager.read_json("models.json")
+    model = model["gpt-3.5-turbo-16k-0613"]
     # initialize kw_detector
     kw_detector = KeywordDetector("computer")
     # add keyword_detector event listeners
@@ -84,7 +86,7 @@ def main():
     ef.silence.clear()
 
     # Initializing other modules
-    chat_session = chat_manager.ChatSession(chat_config["prompt"], chat_config["model"], chat_config["temperature"], chat_config["presence_penalty"], chat_config["token_limit"], chat_config["limit_thresh"])
+    chat_session = chat_manager.ChatSession(chat_config["prompt"], model["name"], chat_config["temperature"], chat_config["presence_penalty"], model["token_limit"], model["limit_thresh"])
     transcriber = Transcriber(
         config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
     )
