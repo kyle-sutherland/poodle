@@ -40,7 +40,15 @@ class ChatSession:
         ]
     }
 
-    def __init__(self, initial_prompt: str = None, model: str = None, temperature: float = None, presence_penalty: float = None, token_limit: int = None, limit_thresh: float = None):
+    def __init__(
+        self,
+        initial_prompt: str = None,
+        model: str = None,
+        temperature: float = None,
+        presence_penalty: float = None,
+        token_limit: int = None,
+        limit_thresh: float = None,
+    ):
         self.ai = openai
         self.ai.api_key = FileManager.read_file("api_keys/keys")
         self.ai.organization = "org-9YiPG54UMFObNmQ2TMOnPCar"
@@ -65,7 +73,7 @@ class ChatSession:
         self.limit_thresh = limit_thresh
         if limit_thresh is None:
             self.limit_thresh = 0.4
-        
+
     def add_user_entry(self, trans):
         speech = extract_trans_text(trans)
         for i in speech:
