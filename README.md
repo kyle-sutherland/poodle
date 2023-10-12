@@ -30,9 +30,9 @@ Visit the [official PyTorch website](https://pytorch.org/get-started/locally/) t
 
 1. Activate the Conda environment:
 ```bash
-conda activate <environment_name>
+conda activate poodle
 ```
-Replace `<environment_name>` with the name of the environment specified in the `environment.yml` file.
+Replace 'poodle' with your environment name if you specified a different one.
 
 2. Navigate to the project directory and run the program:
 ```bash
