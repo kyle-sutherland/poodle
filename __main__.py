@@ -2,6 +2,7 @@
 import gc
 import logging
 import warnings
+import threading
 
 from openai.types.chat import ChatCompletion
 
@@ -31,10 +32,15 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
     resp = chat.send_request()
     content = resp.choices[0].message.content
     
-    if config.SPEAK:
-        tts = TextToSpeech()
-        tts.make_voice(text=content, voice="shimmer")
-        tts.play_voice()
+    def tts_task():
+            if config.SPEAK:
+                tts = TextToSpeech()
+                tts.make_voice(text=content, voice="shimmer")
+                tts.play_voice()
+
+    # Start TTS in a separate thread
+    tts_thread = threading.Thread(target=tts_task)
+    tts_thread.start()
 
     if not config.STREAM_RESPONSE:
         chat.add_reply_entry(resp)
@@ -61,6 +67,7 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
 
     ef.silence.clear()
     gc.collect()
+    tts_thread.join()
 
 
 def main():
