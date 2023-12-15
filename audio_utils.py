@@ -121,7 +121,7 @@ class Transcriber:
         self.audio_directory = audio_directory
         self.transcription_directory = transcription_directory
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = "base"
+        self.model = "small"
         self.mod = whisper.load_model(self.model, self.device)
 
     def transcribe_bodies(self):
@@ -152,8 +152,8 @@ class OnlineTranscriber:
             for file in os.listdir(self.audio_directory):
                 t = time.time()
                 f = open(f"{self.audio_directory}{file}", "rb")
-                result = self.ai.Audio.transcribe(
-                    "whisper-1", f, response_format="verbose_json"
+                result = self.ai.audio.transcriptions.create(
+                        model="whisper-1", file=f, response_format="verbose_json"
                 )
                 os.remove(f"{self.audio_directory}{file}")
                 file = file.rstrip(".wav")
@@ -232,15 +232,16 @@ class TextToSpeech:
     def __init__(self):
         self.file = "voice.wav"
         self.pa = pyaudio.PyAudio()
-        self.model = "tts_models/en/ljspeech/glow-tts"
-        self.tts = TTS(self.model)
+        self.model = "tts-1"
+        self.tts = openai.audio
 
-    def make_voice(self, text):
+    def make_voice(self, text, voice):
         if os.path.exists(self.file):
             os.remove(self.file)
-        self.tts.tts_to_file(
-            text=text, gpu=True, file_path=self.file, progress_bar=False
+        voice = self.tts.speech.create(
+            model=self.model, voice=voice, input=text
         )
+        voice.stream_to_file(self.file)
 
     def play_voice(self):
         playsound(self.file)

@@ -13,7 +13,6 @@ PYAUDIO_FRAMES_PER_BUFFER = 8000  # Number of frames per buffer
 ENABLE_PERFORMANCE_LOG = False  # Enable performance logging
 ENABLE_ALL_PARTIAL_RESULT_LOG = False  # Log all partial results
 ENABLE_ACTIVE_SPEECH_LOG = False  # Log active speech
-
 # Paths for various data storage
 PATH_PROMPT_BODIES_AUDIO = "prompt_bodies_audio/"  # Path to store audio prompts
 TRANSCRIPTION_PATH = "body_transcriptions/"  # Path to store transcriptions
@@ -25,3 +24,5 @@ ONLINE_TRANSCRIBE = False  # Use online transcription service
 
 # Determines whether the response should be streamed or not
 STREAM_RESPONSE = False
+#text-to-speech
+SPEAK = True

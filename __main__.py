@@ -3,9 +3,11 @@ import gc
 import logging
 import warnings
 
+from openai.types.chat import ChatCompletion
+
 import chat_manager
 import kd_listeners
-from audio_utils import KeywordDetector, Transcriber, OnlineTranscriber
+from audio_utils import KeywordDetector, Transcriber, OnlineTranscriber, TextToSpeech
 from file_manager import FileManager
 import time
 import config
@@ -27,12 +29,18 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
     if len(trans) != 0:
         chat.add_user_entry(trans)
     resp = chat.send_request()
+    content = resp.choices[0].message.content
+    
+    if config.SPEAK:
+        tts = TextToSpeech()
+        tts.make_voice(text=content, voice="shimmer")
+        tts.play_voice()
 
     if not config.STREAM_RESPONSE:
         chat.add_reply_entry(resp)
         tstamp = FileManager.get_datetime_string()
-        FileManager.save_json(f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json", resp)
-        print(f'\n{resp["choices"][0]["message"]["content"]}\n')
+        # FileManager.save_json(f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json", resp)
+        print(f'\n{content}\n')
         logging.info(
             f"\ntotal response time: {time.time() - ef.stream_write_time} seconds\n"
         )
@@ -40,14 +48,16 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
     else:
         chat.extract_streamed_resp_deltas(resp)
 
+
     if not config.STREAM_RESPONSE:
         if chat.is_model_near_limit_thresh(resp):
             s = chat.summarize_conversation()
             chat.add_summary(s)
-            FileManager.save_json(
-                f"{config.RESPONSE_LOG_PATH}response_{FileManager.get_datetime_string()}.json",
-                s,
-            )
+            # FileManager.save_json(
+            #     f"{config.RESPONSE_LOG_PATH}response_{FileManager.get_datetime_string()}.json",
+            #     s,
+            # )
+
 
     ef.silence.clear()
     gc.collect()
@@ -65,12 +75,12 @@ def main():
     """
     # Setting up logging
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.CRITICAL + 1)
+    root_logger.setLevel(logging.INFO + 1)
     print("\nLoading...\n")
     # load chat_config
     chat_config = FileManager.read_json("chat_config.json")
     model = FileManager.read_json("models.json")
-    model = model["gpt-3.5-turbo-16k-0613"]
+    model = model["gpt-4"]["gpt-4-1106-preview"]
     # initialize kw_detector
     kw_detector = KeywordDetector("computer")
     # add keyword_detector event listeners

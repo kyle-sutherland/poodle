@@ -4,6 +4,7 @@ import logging
 from time import sleep
 
 import openai
+from openai.types.chat import ChatCompletion, chat_completion_chunk
 import config
 from file_manager import FileManager
 
@@ -16,7 +17,7 @@ def extract_trans_text(content) -> list:
 
 
 def extract_resp_content(resp) -> str:
-    reply = resp["choices"][0]["message"]["content"]
+    reply = resp.choices[0].message.content
     return reply
 
 
@@ -54,7 +55,7 @@ class ChatSession:
         self.ai.organization = "org-9YiPG54UMFObNmQ2TMOnPCar"
         self.model = model
         if model is None:
-            self.model = "gpt-3.5-turbo-16k-0613"
+            self.model = "gpt-4-32k"
         self.transcription_directory = config.TRANSCRIPTION_PATH
         self.initial_prompt = initial_prompt
         if initial_prompt is None:
@@ -69,7 +70,7 @@ class ChatSession:
             self.presence_penalty = 1
         self.model_token_limit = token_limit
         if token_limit is None:
-            self.model_token_limit = 16338
+            self.model_token_limit = 32768
         self.limit_thresh = limit_thresh
         if limit_thresh is None:
             self.limit_thresh = 0.4
@@ -84,9 +85,9 @@ class ChatSession:
             else:
                 pass
 
-    def is_model_near_limit_thresh(self, response) -> bool:
+    def is_model_near_limit_thresh(self, response: ChatCompletion) -> bool:
         if (
-            response["usage"]["total_tokens"]
+            response.usage.total_tokens
             > self.model_token_limit * self.limit_thresh
         ):
             return True
@@ -108,7 +109,7 @@ class ChatSession:
         collected_messages = []
         # iterate through the stream of events
         for chunk in resp:
-            chunk_message = chunk["choices"][0]["delta"]
+            chunk_message = chunk.choices[0].delta
             if "content" in chunk_message.keys():
                 print(chunk_message["content"], end="", flush=True)
             collected_messages.append(chunk_message)
@@ -123,7 +124,7 @@ class ChatSession:
 
     def send_request(self):
         try:
-            chat_completion = self.ai.ChatCompletion.create(
+            chat_completion = self.ai.chat.completions.create(
                 model=self.model,
                 messages=self.messages,
                 temperature=self.temperature,
@@ -154,9 +155,8 @@ class ChatSession:
             {"role": "user", "content": f"{m}"},
         ]
         try:
-            chat_completion = self.ai.ChatCompletion.create(
-                model=self.model, messages=prompt, temperature=0
-            )
+            chat_completion = self.ai.chat.completions.create(
+                model=self.model, messages=prompt)
             return chat_completion
         except Exception as e:
             print(f"Error sending request: {e}")
@@ -164,7 +164,7 @@ class ChatSession:
 
     def add_summary(self, summary):
         m = [self.messages[0]]
-        r: str = summary["choices"][0]["message"]["content"]
+        r: str = summary.choices[0].message.content
         try:
             r_parsed = ast.literal_eval(r)
             for i in r_parsed:

@@ -2,6 +2,8 @@
 import logging
 import os
 from datetime import datetime
+
+from openai.types.chat import ChatCompletion
 import config
 import json
 
@@ -46,7 +48,7 @@ class FileManager:
         os.remove(file_path)
 
     @staticmethod
-    def save_json(file_name: str, content: dict or list):
+    def save_json(file_name: str, content: dict or list or ChatCompletion):
         """ Save content as a JSON file. """
         with open(file_name, "w") as f:
             json.dump(content, fp=f, indent=4)
