@@ -33,6 +33,7 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
     content = resp.choices[0].message.content
     
     def tts_task():
+<<<<<<< HEAD
             if config.SPEAK == "WHISPER":
                 tts = TextToSpeech()
                 logging.info(
@@ -51,6 +52,12 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
                 pass
             else:
                 pass
+=======
+            if config.SPEAK:
+                tts = TextToSpeech()
+                tts.make_voice(text=content, voice="shimmer")
+                tts.play_voice()
+>>>>>>> e3e3e8eb7a93e016e3690e4d24a9ac1cd3febbf1
 
     # Start TTS in a separate thread
     tts_thread = threading.Thread(target=tts_task)
