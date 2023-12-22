@@ -1,29 +1,36 @@
-# audio_utils.py
+# Standard Library
 import logging
 import os
 import queue
-import wave
-
-import openai
-import pyaudio
-import torch.cuda
-import whisper
 import threading
 import time
-from TTS.api import TTS
-
-import config
-import event_flags as ef
-from file_manager import FileManager
-import vosk
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
-from pydub import AudioSegment
+
+# Third Party Libraries
+import openai
+import pyaudio
 import simpleaudio
-from transformers import SpeechT5Processor, SpeechT5ForTextToSpeech, SpeechT5HifiGan
+import torch.cuda
+import vosk
+import wave
 from datasets import load_dataset
+from pydub import AudioSegment
+from pydub.playback import play
 from transformers import pipeline
+
+# Local Modules
+import config
+import event_flags as ef
+import whisper
+from file_manager import FileManager
 import soundfile
+
+
+def playMp3Sound(file):
+    sound = AudioSegment.from_mp3(file)
+    play(sound)
+
 
 class KeywordDetector(threading.Thread):
     def __init__(self, keyword, audio_params=None, max_listener_threads=10):
@@ -158,7 +165,7 @@ class OnlineTranscriber:
                 t = time.time()
                 f = open(f"{self.audio_directory}{file}", "rb")
                 result = self.ai.audio.transcriptions.create(
-                        model="whisper-1", file=f, response_format="verbose_json"
+                    model="whisper-1", file=f, response_format="verbose_json"
                 )
                 os.remove(f"{self.audio_directory}{file}")
                 file = file.rstrip(".wav")
@@ -241,18 +248,29 @@ class TextToSpeech:
         self.stop_playback = threading.Event()
 
     def stream_voice(self, text, voice):
-        response = self.tts.speech.create(model=self.model, voice=voice, input=text, response_format="mp3")
+        response = self.tts.speech.create(
+            model=self.model, voice=voice, input=text, response_format="mp3"
+        )
         audio_data = BytesIO(response.content)
         audio_segment = AudioSegment.from_file(audio_data, format="mp3")
         pcm_data = audio_segment.raw_data
 
-        self.playback_thread = threading.Thread(target=self._play_audio, args=(pcm_data, audio_segment,))
+        self.playback_thread = threading.Thread(
+            target=self._play_audio,
+            args=(
+                pcm_data,
+                audio_segment,
+            ),
+        )
         self.playback_thread.start()
 
     def _play_audio(self, pcm_data, audio_segment):
-        play_obj = simpleaudio.play_buffer(pcm_data, num_channels=audio_segment.channels, 
-                                  bytes_per_sample=audio_segment.sample_width, 
-                                  sample_rate=audio_segment.frame_rate)
+        play_obj = simpleaudio.play_buffer(
+            pcm_data,
+            num_channels=audio_segment.channels,
+            bytes_per_sample=audio_segment.sample_width,
+            sample_rate=audio_segment.frame_rate,
+        )
         while play_obj.is_playing():
             if self.stop_playback.is_set():
                 play_obj.stop()
@@ -270,20 +288,28 @@ class TextToSpeech:
 class TextToSpeechLocal:
     def __init__(self):
         self.synthesiser = pipeline("text-to-speech", model="microsoft/speecht5_tts")
-        embeddings_dataset = load_dataset("Matthijs/cmu-arctic-xvectors", split="validation")
-        self.speaker_embedding = torch.tensor(embeddings_dataset[7306]["xvector"]).unsqueeze(0)
+        embeddings_dataset = load_dataset(
+            "Matthijs/cmu-arctic-xvectors", split="validation"
+        )
+        self.speaker_embedding = torch.tensor(
+            embeddings_dataset[7306]["xvector"]
+        ).unsqueeze(0)
         self.play_obj = None
         self.playback_thread = None
 
     def generate_speech(self, text, file_name="speech.wav"):
-        speech = self.synthesiser(text, forward_params={"speaker_embeddings": self.speaker_embedding})
+        speech = self.synthesiser(
+            text, forward_params={"speaker_embeddings": self.speaker_embedding}
+        )
         soundfile.write(file_name, speech["audio"], samplerate=speech["sampling_rate"])
         return file_name
 
     def play_audio(self, file_name):
         if self.playback_thread and self.playback_thread.is_alive():
             self.stop_audio()  # Stop any currently playing audio
-        self.playback_thread = threading.Thread(target=self._play_audio_thread, args=(file_name,))
+        self.playback_thread = threading.Thread(
+            target=self._play_audio_thread, args=(file_name,)
+        )
         self.playback_thread.start()
 
     def _play_audio_thread(self, file_name):

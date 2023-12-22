@@ -8,7 +8,14 @@ from openai.types.chat import ChatCompletion
 
 import chat_manager
 import kd_listeners
-from audio_utils import KeywordDetector, Transcriber, OnlineTranscriber, TextToSpeech, TextToSpeechLocal
+from audio_utils import (
+    KeywordDetector,
+    Transcriber,
+    OnlineTranscriber,
+    TextToSpeech,
+    TextToSpeechLocal,
+    playMp3Sound,
+)
 from file_manager import FileManager
 import time
 import config
@@ -31,33 +38,26 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
         chat.add_user_entry(trans)
     resp = chat.send_request()
     content = resp.choices[0].message.content
-    
+
     def tts_task():
-<<<<<<< HEAD
-            if config.SPEAK == "WHISPER":
-                tts = TextToSpeech()
-                logging.info(
-                    f"\ntime to start audio: {time.time() - ef.stream_write_time} seconds\n"
-                )
-                tts.stream_voice(text=content, voice="shimmer")
-            if config.SPEAK == "LOCAL":
-                tts_local = TextToSpeechLocal()
-                file = tts_local.generate_speech(text=content)
-                logging.info(
-                    f"\ntime to start audio: {time.time() - ef.stream_write_time} seconds\n"
-                )
-                tts_local.play_audio(file)
-                
-            if config.SPEAK == "NONE":
-                pass
-            else:
-                pass
-=======
-            if config.SPEAK:
-                tts = TextToSpeech()
-                tts.make_voice(text=content, voice="shimmer")
-                tts.play_voice()
->>>>>>> e3e3e8eb7a93e016e3690e4d24a9ac1cd3febbf1
+        if config.SPEAK == "WHISPER":
+            tts = TextToSpeech()
+            logging.info(
+                f"\ntime to start audio: {time.time() - ef.stream_write_time} seconds\n"
+            )
+            tts.stream_voice(text=content, voice="shimmer")
+        if config.SPEAK == "LOCAL":
+            tts_local = TextToSpeechLocal()
+            file = tts_local.generate_speech(text=content)
+            logging.info(
+                f"\ntime to start audio: {time.time() - ef.stream_write_time} seconds\n"
+            )
+            tts_local.play_audio(file)
+
+        if config.SPEAK == "NONE":
+            pass
+        else:
+            pass
 
     # Start TTS in a separate thread
     tts_thread = threading.Thread(target=tts_task)
@@ -66,14 +66,16 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
     if not config.STREAM_RESPONSE:
         chat.add_reply_entry(resp)
         tstamp = FileManager.get_datetime_string()
-        FileManager.save_json(f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json", chat_manager.chat_completion_to_dict(resp))
-        print(f'\n{content}\n')
+        FileManager.save_json(
+            f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json",
+            chat_manager.chat_completion_to_dict(resp),
+        )
+        print(f"\n{content}\n")
         logging.info(
             f"\ntotal response time: {time.time() - ef.stream_write_time} seconds\n"
         )
     else:
         chat.extract_streamed_resp_deltas(resp)
-
 
     if not config.STREAM_RESPONSE:
         if chat.is_model_near_limit_thresh(resp):
@@ -84,14 +86,14 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
                 chat_manager.chat_completion_to_dict(s),
             )
 
-
     ef.silence.clear()
     gc.collect()
     tts_thread.join()
 
 
 def main():
-    """Main function to start the application.
+    """
+    Main function to start the application.
 
     Sets up logging, initializes modules, and enters a loop to listen for user input.
     Transcribes the user input and sends it to get a response.
@@ -107,7 +109,7 @@ def main():
     # load chat_config
     chat_config = FileManager.read_json("chat_config.json")
     model = FileManager.read_json("models.json")
-    model = model["gpt-4"]["gpt-4-1106-preview"]
+    model = model["gpt-4"]["gpt-4-32k"]
     # initialize kw_detector
     kw_detector = KeywordDetector("computer")
     # add keyword_detector event listeners
@@ -124,7 +126,14 @@ def main():
     ef.silence.clear()
 
     # Initializing other modules
-    chat_session = chat_manager.ChatSession(chat_config["prompt"], model["name"], chat_config["temperature"], chat_config["presence_penalty"], model["token_limit"], model["limit_thresh"])
+    chat_session = chat_manager.ChatSession(
+        chat_config["prompt"],
+        model["name"],
+        chat_config["temperature"],
+        chat_config["presence_penalty"],
+        model["token_limit"],
+        model["limit_thresh"],
+    )
     transcriber = Transcriber(
         config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
     )
@@ -134,6 +143,9 @@ def main():
 
     try:
         kw_detector.start()
+        if config.SOUNDS:
+            # notification-sound-7062.mp3
+            playMp3Sound("./sounds/ready.mp3")
         print("Ready.\n")
         while True:
             if ef.silence.is_set() and not ef.recording.is_set():
@@ -148,9 +160,15 @@ def main():
                 )
                 trans_text = chat_manager.extract_trans_text(transcriptions)
                 if len(trans_text) == 0:
+                    if config.SOUNDS:
+                        # button-124476.mp3
+                        playMp3Sound("./sounds/badcopy.mp3")
                     print("I didn't hear you")
                     ef.silence.clear()
                     continue
+                if config.SOUNDS:
+                    # start-13691.mp3
+                    playMp3Sound("./sounds/listening.mp3")
                 print(f"I heard:\n\n   {trans_text[0]}\n\n Replying...\n\n")
                 do_request(chat_session, transcriptions)
             time.sleep(0.1)

@@ -16,13 +16,14 @@ ENABLE_ACTIVE_SPEECH_LOG = False  # Log active speech
 # Paths for various data storage
 PATH_PROMPT_BODIES_AUDIO = "prompt_bodies_audio/"  # Path to store audio prompts
 TRANSCRIPTION_PATH = "body_transcriptions/"  # Path to store transcriptions
-CONVERSATIONS_PATH = 'conversations/'  # Path to store conversations
-RESPONSE_LOG_PATH = 'response_log/'  # Path to store response logs
+CONVERSATIONS_PATH = "conversations/"  # Path to store conversations
+RESPONSE_LOG_PATH = "response_log/"  # Path to store response logs
 
 # Transcription settings
 ONLINE_TRANSCRIBE = False  # Use online transcription service
 
 # Determines whether the response should be streamed or not
 STREAM_RESPONSE = False
-#text-to-speech
+# text-to-speech
 SPEAK = "LOCAL"
+SOUNDS = True
