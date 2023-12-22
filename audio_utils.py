@@ -29,7 +29,8 @@ import soundfile
 
 def playMp3Sound(file):
     sound = AudioSegment.from_mp3(file)
-    play(sound)
+    sound_thread = threading.Thread(target=play, args=(sound,))
+    sound_thread.start()
 
 
 class KeywordDetector(threading.Thread):

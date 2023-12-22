@@ -1,10 +1,7 @@
-# __main__.py
 import gc
 import logging
 import warnings
 import threading
-
-from openai.types.chat import ChatCompletion
 
 import chat_manager
 import kd_listeners
@@ -109,7 +106,7 @@ def main():
     # load chat_config
     chat_config = FileManager.read_json("chat_config.json")
     model = FileManager.read_json("models.json")
-    model = model["gpt-4"]["gpt-4-32k"]
+    model = model["gpt-4"]["gpt-4-1106-preview"]
     # initialize kw_detector
     kw_detector = KeywordDetector("computer")
     # add keyword_detector event listeners

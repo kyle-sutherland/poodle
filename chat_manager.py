@@ -29,7 +29,6 @@ def sim_typing_output(text: str, delay: float = 0.01):
         sleep(delay)
 
 
-
 def chat_completion_to_dict(response):
     # Assuming 'response' is an instance of ChatCompletion
     # Convert it to a dictionary format
@@ -44,9 +43,9 @@ def chat_completion_to_dict(response):
                 "index": choice.index,  # Index of the choice
                 "message": {
                     "content": choice.message.content,  # Content of the message
-                    "role": choice.message.role  # Role (user or assistant)
+                    "role": choice.message.role,  # Role (user or assistant)
                 },
-                "logprobs": choice.logprobs  # Log probabilities, if available
+                "logprobs": choice.logprobs,  # Log probabilities, if available
             }
             for choice in response.choices
         ],
@@ -57,10 +56,11 @@ def chat_completion_to_dict(response):
         "usage": {
             "completion_tokens": response.usage.completion_tokens,
             "prompt_tokens": response.usage.prompt_tokens,
-            "total_tokens": response.usage.total_tokens
-        }
+            "total_tokens": response.usage.total_tokens,
+        },
     }
     return chat_dict
+
 
 class ChatSession:
     error_completion = {
@@ -88,7 +88,7 @@ class ChatSession:
         self.ai.organization = "org-9YiPG54UMFObNmQ2TMOnPCar"
         self.model = model
         if model is None:
-            self.model = "gpt-4-32k"
+            self.model = "gpt-3.5-1106"
         self.transcription_directory = config.TRANSCRIPTION_PATH
         self.initial_prompt = initial_prompt
         if initial_prompt is None:
@@ -103,7 +103,7 @@ class ChatSession:
             self.presence_penalty = 1
         self.model_token_limit = token_limit
         if token_limit is None:
-            self.model_token_limit = 32768
+            self.model_token_limit = 16385
         self.limit_thresh = limit_thresh
         if limit_thresh is None:
             self.limit_thresh = 0.4
@@ -119,10 +119,7 @@ class ChatSession:
                 pass
 
     def is_model_near_limit_thresh(self, response: ChatCompletion) -> bool:
-        if (
-            response.usage.total_tokens
-            > self.model_token_limit * self.limit_thresh
-        ):
+        if response.usage.total_tokens > self.model_token_limit * self.limit_thresh:
             return True
         else:
             return False
@@ -189,7 +186,8 @@ class ChatSession:
         ]
         try:
             chat_completion = self.ai.chat.completions.create(
-                model=self.model, messages=prompt)
+                model=self.model, messages=prompt
+            )
             return chat_completion
         except Exception as e:
             print(f"Error sending request: {e}")

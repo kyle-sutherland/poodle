@@ -6,7 +6,14 @@ import json
 import chat_manager
 import config
 import event_flags
-from audio_utils import TextToSpeechLocal, Transcriber, AudioRecorder, SilenceWatcher, TextToSpeech
+from audio_utils import (
+    TextToSpeechLocal,
+    Transcriber,
+    AudioRecorder,
+    SilenceWatcher,
+    TextToSpeech,
+    playMp3Sound,
+)
 from file_manager import FileManager
 
 silence_watcher = SilenceWatcher()
@@ -19,6 +26,8 @@ tts_local = TextToSpeechLocal()
 def kwl_print_keyword_message(keyword, data, stream_write_time):
     trigger_time = time.time() - stream_write_time
     logging.info(f"Time from stream write to keyword trigger: {trigger_time} seconds")
+    if config.SOUNDS:
+        playMp3Sound("./sounds/listening.mp3")
     chat_manager.sim_typing_output(f" This is {keyword}. I am listening.", 0.02)
     print("\n")
     if config.SPEAK == "WHISPER":
