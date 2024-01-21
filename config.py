@@ -24,6 +24,7 @@ ONLINE_TRANSCRIBE = False  # Use online transcription service
 
 # Determines whether the response should be streamed or not
 STREAM_RESPONSE = False
-# text-to-speech
-SPEAK = "LOCAL"
+# text-to-speech valid options: LOCAL, WHISPER, NONE
+SPEAK = "NONE"
+
 SOUNDS = True

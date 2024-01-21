@@ -119,7 +119,7 @@ class AudioQueueFetcher(threading.Thread):
             frames_per_buffer=config.PYAUDIO_FRAMES_PER_BUFFER,
         )
         while self.running.is_set():
-            data = stream.read(self.frames_per_buffer)
+            data = stream.read(self.frames_per_buffer, exception_on_overflow=False)
             self.audio_queue.put((time.time(), data))
         stream.stop_stream()
         stream.close()
@@ -184,7 +184,7 @@ class AudioRecorder:
         self.pa = pyaudio.PyAudio()
         self.default_device_info = self.pa.get_default_input_device_info()
         self.sample_rate = int(self.default_device_info["defaultSampleRate"])
-        self.frames_per_buffer = 2048
+        self.frames_per_buffer = 8000
         self.frames = []
         self.stream = None
 
