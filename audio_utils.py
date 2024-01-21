@@ -21,6 +21,7 @@ from transformers import pipeline
 
 # Local Modules
 import config
+import vosk_lang_dict as v_lang_dict
 import event_flags as ef
 import whisper
 from file_manager import FileManager
@@ -40,7 +41,7 @@ class KeywordDetector(threading.Thread):
         self.keyword = keyword
         self.vosk = vosk
         self.vosk.SetLogLevel(-1)
-        self.model = vosk.Model(lang="en-us")
+        self.model = vosk.Model(lang=v_lang_dict.languages[config.LANG])
         self.audio_queue = queue.Queue()
         self.keyword_listeners = []
         self.partial_listeners = []
@@ -119,7 +120,7 @@ class AudioQueueFetcher(threading.Thread):
             frames_per_buffer=config.PYAUDIO_FRAMES_PER_BUFFER,
         )
         while self.running.is_set():
-            data = stream.read(self.frames_per_buffer, exception_on_overflow=False)
+            data = stream.read(self.frames_per_buffer)
             self.audio_queue.put((time.time(), data))
         stream.stop_stream()
         stream.close()
@@ -173,7 +174,7 @@ class OnlineTranscriber:
                 FileManager.save_json(
                     f"{self.transcription_directory}transcription_{file}.json", result
                 )
-                print(
+                logging.info(
                     f"transcription completed in: "
                     f"{time.time() - t} seconds using api call\n"
                 )
@@ -184,7 +185,7 @@ class AudioRecorder:
         self.pa = pyaudio.PyAudio()
         self.default_device_info = self.pa.get_default_input_device_info()
         self.sample_rate = int(self.default_device_info["defaultSampleRate"])
-        self.frames_per_buffer = 8000
+        self.frames_per_buffer = 2048
         self.frames = []
         self.stream = None
 
@@ -323,3 +324,4 @@ class TextToSpeechLocal:
             self.play_obj.stop()
         if self.playback_thread:
             self.playback_thread.join()
+

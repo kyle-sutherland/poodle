@@ -28,3 +28,8 @@ STREAM_RESPONSE = False
 SPEAK = "NONE"
 
 SOUNDS = True
+
+KEYWORD = "computer"
+
+LANG = 'english-us'
+
