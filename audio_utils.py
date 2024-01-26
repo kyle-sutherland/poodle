@@ -135,7 +135,7 @@ class Transcriber:
         self.audio_directory = audio_directory
         self.transcription_directory = transcription_directory
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = "base"
+        self.model = config.LOCAL_TRANSCRIBER_MODEL
         self.mod = whisper.load_model(self.model, self.device)
 
     def transcribe_bodies(self):

@@ -108,7 +108,7 @@ def main():
     model = FileManager.read_json("models.json")
     model = model["gpt-4"]["gpt-4-1106-preview"]
     # initialize kw_detector
-    kw_detector = KeywordDetector(config.KEYWORD)
+    kw_detector = KeywordDetector("computer")
     # add keyword_detector event listeners
     kw_detector.add_keyword_listener(kd_listeners.kwl_start_recording)
     kw_detector.add_keyword_listener(kd_listeners.kwl_stop_audio)
