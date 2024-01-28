@@ -25,6 +25,7 @@ LOCAL_TRANSCRIBER_MODEL = "base"  # available models given by whisper.available_
 STREAM_RESPONSE = False
 # text-to-speech valid options: LOCAL, WHISPER, NONE
 SPEAK = "NONE"
+VOICE = "shimmer"
 
 CHAT_MODEL = "gpt-4-1106-preview"
 PRESENCE_PENALTY = 1.0

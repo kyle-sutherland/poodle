@@ -29,6 +29,7 @@ def sim_typing_output(text: str, delay: float = 0.01):
         sleep(delay)
 
 
+
 def get_vosk_languages() -> dict:
     return FileManager.read_json("./models.json")
 
