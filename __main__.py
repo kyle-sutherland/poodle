@@ -1,3 +1,10 @@
+import config
+from arg_parser import ParseArgs
+import json
+import pprint
+import textwrap
+
+ParseArgs(config)
 import gc
 import logging
 import warnings
@@ -15,7 +22,6 @@ from audio_utils import (
 )
 from file_manager import FileManager
 import time
-import config
 import event_flags as ef
 
 
@@ -37,24 +43,24 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
     content = resp.choices[0].message.content
 
     def tts_task():
-        if config.SPEAK == "WHISPER":
-            tts = TextToSpeech()
-            logging.info(
-                f"\ntime to start audio: {time.time() - ef.stream_write_time} seconds\n"
-            )
-            tts.stream_voice(text=content, voice="shimmer")
-        if config.SPEAK == "LOCAL":
-            tts_local = TextToSpeechLocal()
-            file = tts_local.generate_speech(text=content)
-            logging.info(
-                f"\ntime to start audio: {time.time() - ef.stream_write_time} seconds\n"
-            )
-            tts_local.play_audio(file)
-
-        if config.SPEAK == "NONE":
-            pass
-        else:
-            pass
+        match config.SPEAK:
+            case "cloud":
+                tts = TextToSpeech()
+                logging.info(
+                    "\ntime to start audio:"
+                    + f" {time.time() - ef.stream_write_time} seconds\n"
+                )
+                tts.stream_voice(text=content, voice="shimmer")
+            case "local":
+                tts_local = TextToSpeechLocal()
+                file = tts_local.generate_speech(text=content)
+                logging.info(
+                    "\ntime to start audio: "
+                    + f" {time.time() - ef.stream_write_time} seconds\n"
+                )
+                tts_local.play_audio(file)
+            case _:
+                pass
 
     # Start TTS in a separate thread
     tts_thread = threading.Thread(target=tts_task)
@@ -69,7 +75,8 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
         )
         print(f"\n{content}\n")
         logging.info(
-            f"\ntotal response time: {time.time() - ef.stream_write_time} seconds\n"
+            "\ntotal response time: "
+            + f" {time.time() - ef.stream_write_time} seconds\n"
         )
     else:
         chat.extract_streamed_resp_deltas(resp)
@@ -99,16 +106,29 @@ def main():
     - Continuously listens for user input until interrupted.
     - Updates and saves chat sessions.
     """
+    kw_detector = None
+    chat_session = None
+    convo = None
     # Setting up logging
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO + 1)
     print("\nLoading...\n")
     # load chat_config
     chat_config = FileManager.read_json("chat_config.json")
+    if config.ENABLE_PRINT_PROMPT:
+        js = "" + chat_config["prompt"]
+        jo = json.loads(js)
+        jfs = json.dumps(jo, indent=2, ensure_ascii=False)
+        print(f"\n{jfs}")
+        print(f"Temperature: {config.TEMPERATURE}")
+        print(f"Presence penalty: {config.PRESENCE_PENALTY}")
+        print("\n")
+    # TODO: Make a function that loads all this stuff into variables at once.
+    # minimize calls to read_json()
     model = FileManager.read_json("models.json")
-    model = model["gpt-4"]["gpt-4-1106-preview"]
+    model = model[config.CHAT_MODEL]
     # initialize kw_detector
-    kw_detector = KeywordDetector("computer")
+    kw_detector = KeywordDetector(config.KEYWORD)
     # add keyword_detector event listeners
     kw_detector.add_keyword_listener(kd_listeners.kwl_start_recording)
     kw_detector.add_keyword_listener(kd_listeners.kwl_stop_audio)
@@ -126,8 +146,10 @@ def main():
     chat_session = chat_manager.ChatSession(
         chat_config["prompt"],
         model["name"],
-        chat_config["temperature"],
-        chat_config["presence_penalty"],
+        # chat_config["temperature"],
+        # chat_config["presence_penalty"],
+        config.TEMPERATURE,
+        config.PRESENCE_PENALTY,
         model["token_limit"],
         model["limit_thresh"],
     )
@@ -137,7 +159,6 @@ def main():
     online_transcriber = OnlineTranscriber(
         config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
     )
-
     try:
         kw_detector.start()
         if config.SOUNDS:
@@ -174,8 +195,8 @@ def main():
         kw_detector.close()
         kw_detector.join()
         gc.collect()
+        quit()
     except KeyboardInterrupt:
-        # Save conversation when interrupted
         convo = chat_session.messages
         timestamp = FileManager.get_datetime_string()
         FileManager.save_json(
@@ -184,7 +205,9 @@ def main():
         print("\n\nGoodbye.")
         kw_detector.close()
         kw_detector.join()
+        # Save conversation when interrupted
         gc.collect()
+        quit()
 
 
 if __name__ == "__main__":

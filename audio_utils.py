@@ -21,7 +21,6 @@ from transformers import pipeline
 
 # Local Modules
 import config
-import vosk_lang_dict as v_lang_dict
 import event_flags as ef
 import whisper
 from file_manager import FileManager
@@ -34,6 +33,9 @@ def playMp3Sound(file):
     sound_thread.start()
 
 
+v_lang_dict = FileManager.read_json("./vosk_langs.json")
+
+
 class KeywordDetector(threading.Thread):
     def __init__(self, keyword, audio_params=None, max_listener_threads=10):
         threading.Thread.__init__(self)
@@ -41,7 +43,7 @@ class KeywordDetector(threading.Thread):
         self.keyword = keyword
         self.vosk = vosk
         self.vosk.SetLogLevel(-1)
-        self.model = vosk.Model(lang=v_lang_dict.languages[config.LANG])
+        self.model = vosk.Model(lang=v_lang_dict[config.LANG])
         self.audio_queue = queue.Queue()
         self.keyword_listeners = []
         self.partial_listeners = []
@@ -113,7 +115,7 @@ class AudioQueueFetcher(threading.Thread):
 
     def run(self):
         stream = self.pa.open(
-            format=config.PYAUDIO_FORMAT,
+            format=pyaudio.paInt16,
             channels=config.PYAUDIO_CHANNELS,
             rate=self.sample_rate,
             input=True,
@@ -191,7 +193,7 @@ class AudioRecorder:
 
     def start_recording(self):
         stream = self.pa.open(
-            format=config.PYAUDIO_FORMAT,
+            format=pyaudio.paInt16,
             channels=config.PYAUDIO_CHANNELS,
             rate=self.sample_rate,
             input=True,
@@ -236,6 +238,7 @@ class SilenceWatcher:
                     return True
         else:
             self.reset()
+        return False
 
     def reset(self):
         self.silence_counter = 0
@@ -324,4 +327,3 @@ class TextToSpeechLocal:
             self.play_obj.stop()
         if self.playback_thread:
             self.playback_thread.join()
-

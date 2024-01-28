@@ -15,27 +15,35 @@ class FileManager:
     """
 
     @staticmethod
+    def search_dict_by_key(data, target):
+        for key, value in data.items():
+            if isinstance(value, dict):
+                yield from FileManager.search_dict_by_key(value, target)
+            elif key == target:
+                yield value
+
+    @staticmethod
     def get_datetime_string() -> str:
-        """ Get the current datetime as a formatted string. """
+        """Get the current datetime as a formatted string."""
         now = datetime.now()
         timestamp = now.strftime("%d-%m-%Y_%H-%M-%S")
         return timestamp
 
     @staticmethod
     def write_file(file_path: str, content: str):
-        """ Write content to a file. """
+        """Write content to a file."""
         with open(file_path, "w") as outfile:
             outfile.write(content)
 
     @staticmethod
     def read_file(file_path: str) -> str:
-        """ Read content from a file. """
+        """Read content from a file."""
         with open(file_path, "r") as infile:
             return infile.read()
-    
+
     @staticmethod
     def read_json(file_path: str) -> dict:
-        """ read json file and return contents as dict """
+        """read json file and return contents as dict"""
         data = None
         with open(file_path, "r") as infile:
             data = json.load(infile)
@@ -43,26 +51,26 @@ class FileManager:
 
     @staticmethod
     def delete_transcription(file_name: str):
-        """ Delete a transcription file. """
+        """Delete a transcription file."""
         file_path = os.path.join(config.TRANSCRIPTION_PATH, file_name)
         os.remove(file_path)
 
     @staticmethod
     def save_json(file_name: str, content: dict or list or ChatCompletion):
-        """ Save content as a JSON file. """
+        """Save content as a JSON file."""
         with open(file_name, "w") as f:
             json.dump(content, fp=f, indent=4)
 
     @staticmethod
     def mark_as_read(file_name: str):
-        """ Mark a transcription file as read by renaming it. """
+        """Mark a transcription file as read by renaming it."""
         original_file_path = os.path.join(config.TRANSCRIPTION_PATH, file_name)
         marked_file_path = os.path.join(config.TRANSCRIPTION_PATH, f"_read_{file_name}")
         os.rename(original_file_path, marked_file_path)
 
     @staticmethod
     def read_transcriptions(directory: str) -> list:
-        """ Read transcriptions from a directory. """
+        """Read transcriptions from a directory."""
         transcriptions = []
         for file in os.listdir(directory):
             if not file.startswith("_read_"):

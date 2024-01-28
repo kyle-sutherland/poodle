@@ -1,14 +1,12 @@
 # config.py
-import pyaudio
 
 # Determines whether to dump the keyword block or not
 ENABLE_DUMP_KEYWORD_BLOCK: bool = False
 
 # PyAudio configuration constants
-PYAUDIO_FORMAT = pyaudio.paInt16  # Format of the audio chunks
 PYAUDIO_CHANNELS = 1  # Number of audio channels
 PYAUDIO_FRAMES_PER_BUFFER = 8000  # Number of frames per buffer
-
+ENABLE_PRINT_PROMPT = False
 # Logging configuration flags
 ENABLE_PERFORMANCE_LOG = True  # Enable performance logging
 ENABLE_ALL_PARTIAL_RESULT_LOG = False  # Log all partial results
@@ -21,16 +19,18 @@ RESPONSE_LOG_PATH = "response_log/"  # Path to store response logs
 
 # Transcription settings
 ONLINE_TRANSCRIBE = False  # Use online transcription service
-LOCAL_TRANSCRIBER_MODEL = "base" # available models given by whisper.available_models()
+LOCAL_TRANSCRIBER_MODEL = "base"  # available models given by whisper.available_models()
 
 # Determines whether the response should be streamed or not
-STREAM_RESPONSE = True
+STREAM_RESPONSE = False
 # text-to-speech valid options: LOCAL, WHISPER, NONE
 SPEAK = "NONE"
 
+CHAT_MODEL = "gpt-4-1106-preview"
+PRESENCE_PENALTY = 1.0
+TEMPERATURE = 1.0
 SOUNDS = True
 
 KEYWORD = "computer"
 
-LANG = 'english-us'
-
+LANG = "english-us"

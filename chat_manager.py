@@ -29,6 +29,10 @@ def sim_typing_output(text: str, delay: float = 0.01):
         sleep(delay)
 
 
+def get_vosk_languages() -> dict:
+    return FileManager.read_json("./models.json")
+
+
 def chat_completion_to_dict(response):
     # Assuming 'response' is an instance of ChatCompletion
     # Convert it to a dictionary format
