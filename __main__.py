@@ -114,11 +114,9 @@ def main():
     root_logger.setLevel(logging.INFO + 1)
     print("\nLoading...\n")
     # load chat_config
-    chat_config = FileManager.read_json("chat_config.json")
+    agent_jo = FileManager.read_json("agent.json")
     if config.ENABLE_PRINT_PROMPT:
-        js = "" + chat_config["prompt"]
-        jo = json.loads(js)
-        jfs = json.dumps(jo, indent=2, ensure_ascii=False)
+        jfs = json.dumps(agent_jo, indent=2, ensure_ascii=False)
         print(f"\n{jfs}")
         print(f"Temperature: {config.TEMPERATURE}")
         print(f"Presence penalty: {config.PRESENCE_PENALTY}")
@@ -144,7 +142,7 @@ def main():
 
     # Initializing other modules
     chat_session = chat_manager.ChatSession(
-        chat_config["prompt"],
+        json.dumps(agent_jo, indent=None, ensure_ascii=True),
         model["name"],
         # chat_config["temperature"],
         # chat_config["presence_penalty"],

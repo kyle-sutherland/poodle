@@ -1,4 +1,4 @@
-This just a collection of prompts that I have found useful
+This a collection of prompts that I have found useful
 
 ###
 
