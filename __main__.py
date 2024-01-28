@@ -1,8 +1,11 @@
+import config
+from arg_parser import ParseArgs
+
+ParseArgs(config)
 import gc
 import logging
 import warnings
 import threading
-from arg_parser import ParseArgs
 
 import chat_manager
 import kd_listeners
@@ -16,7 +19,6 @@ from audio_utils import (
 )
 from file_manager import FileManager
 import time
-import config
 import event_flags as ef
 
 
@@ -104,7 +106,6 @@ def main():
     kw_detector = None
     chat_session = None
     convo = None
-    ParseArgs(config)
     # Setting up logging
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO + 1)

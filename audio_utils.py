@@ -115,7 +115,7 @@ class AudioQueueFetcher(threading.Thread):
 
     def run(self):
         stream = self.pa.open(
-            format=config.PYAUDIO_FORMAT,
+            format=pyaudio.paInt16,
             channels=config.PYAUDIO_CHANNELS,
             rate=self.sample_rate,
             input=True,
@@ -193,7 +193,7 @@ class AudioRecorder:
 
     def start_recording(self):
         stream = self.pa.open(
-            format=config.PYAUDIO_FORMAT,
+            format=pyaudio.paInt16,
             channels=config.PYAUDIO_CHANNELS,
             rate=self.sample_rate,
             input=True,

@@ -91,7 +91,8 @@ parser.add_argument(
     choices=range(0, 2),
     type=float,
     action="store",
-    help="Set a temperatature to use for the completion. Default is 1.0",
+    help="Set a temperatature to use for the completion between 0.0 and 2.0.\n "
+    +"See openai api docs for more information about 'temperature'."
 )
 
 parser.add_argument(
@@ -102,7 +103,10 @@ parser.add_argument(
     choices=range(0, 2),
     type=float,
     action="store",
-    help="Set a presence penalty to use for the completion. Default is 1.0",
+    help="Set a presence penalty to use for the completion between 0.0 and 2.0. "
+    +"See openai api docs\n "
+    +" for more information about 'presence penalty'."
+
 )
 
 parser.add_argument("-log", action="store_true", help="log information to console")

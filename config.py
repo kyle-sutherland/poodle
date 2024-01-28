@@ -1,11 +1,9 @@
 # config.py
-import pyaudio
 
 # Determines whether to dump the keyword block or not
 ENABLE_DUMP_KEYWORD_BLOCK: bool = False
 
 # PyAudio configuration constants
-PYAUDIO_FORMAT = pyaudio.paInt16  # Format of the audio chunks
 PYAUDIO_CHANNELS = 1  # Number of audio channels
 PYAUDIO_FRAMES_PER_BUFFER = 8000  # Number of frames per buffer
 
