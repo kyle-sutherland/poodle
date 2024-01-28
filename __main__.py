@@ -153,7 +153,7 @@ def main():
     if config.ENABLE_PRINT_PROMPT:
         agent_keys = agent_jo.keys()
         jfs = json.dumps(agent_jo, indent=2, ensure_ascii=False)
-        print(f"Agent: {list(agent_keys)[0]}")
+        print(f"Loaded Agent: {list(agent_keys)[0]}")
         print(f"\n{jfs}")
         print(f"Temperature: {config.TEMPERATURE}")
         print(f"Presence penalty: {config.PRESENCE_PENALTY}")
