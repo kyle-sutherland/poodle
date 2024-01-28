@@ -38,26 +38,24 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
     content = resp.choices[0].message.content
 
     def tts_task():
-        if config.SPEAK == "WHISPER":
-            tts = TextToSpeech()
-            logging.info(
-                "\ntime to start audio:"
-                + f" {time.time() - ef.stream_write_time} seconds\n"
-            )
-            tts.stream_voice(text=content, voice="shimmer")
-        if config.SPEAK == "LOCAL":
-            tts_local = TextToSpeechLocal()
-            file = tts_local.generate_speech(text=content)
-            logging.info(
-                "\ntime to start audio: "
-                + f" {time.time() - ef.stream_write_time} seconds\n"
-            )
-            tts_local.play_audio(file)
-
-        if config.SPEAK == "NONE":
-            pass
-        else:
-            pass
+        match config.SPEAK:
+            case "cloud":
+                tts = TextToSpeech()
+                logging.info(
+                    "\ntime to start audio:"
+                    + f" {time.time() - ef.stream_write_time} seconds\n"
+                )
+                tts.stream_voice(text=content, voice="shimmer")
+            case "local":
+                tts_local = TextToSpeechLocal()
+                file = tts_local.generate_speech(text=content)
+                logging.info(
+                    "\ntime to start audio: "
+                    + f" {time.time() - ef.stream_write_time} seconds\n"
+                )
+                tts_local.play_audio(file)
+            case _:
+                pass
 
     # Start TTS in a separate thread
     tts_thread = threading.Thread(target=tts_task)
@@ -106,7 +104,7 @@ def main():
     kw_detector = None
     chat_session = None
     convo = None
-    ParseArgs()
+    ParseArgs(config)
     # Setting up logging
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO + 1)
@@ -116,7 +114,7 @@ def main():
     model = FileManager.read_json("models.json")
     model = model["gpt-4"]["gpt-4-1106-preview"]
     # initialize kw_detector
-    kw_detector = KeywordDetector("computer")
+    kw_detector = KeywordDetector(config.KEYWORD)
     # add keyword_detector event listeners
     kw_detector.add_keyword_listener(kd_listeners.kwl_start_recording)
     kw_detector.add_keyword_listener(kd_listeners.kwl_stop_audio)
@@ -145,12 +143,12 @@ def main():
     online_transcriber = OnlineTranscriber(
         config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
     )
-    kw_detector.start()
-    if config.SOUNDS:
-        # notification-sound-7062.mp3
-        playMp3Sound("./sounds/ready.mp3")
-    print("Ready.\n")
     try:
+        kw_detector.start()
+        if config.SOUNDS:
+            # notification-sound-7062.mp3
+            playMp3Sound("./sounds/ready.mp3")
+        print("Ready.\n")
         while True:
             if ef.silence.is_set() and not ef.recording.is_set():
                 with warnings.catch_warnings():
@@ -178,20 +176,18 @@ def main():
             time.sleep(0.1)
     except Exception as e:
         logging.error(f"exception: {e}")
-        if kw_detector is not None:
-            kw_detector.close()
-            kw_detector.join()
+        kw_detector.close()
+        kw_detector.join()
         gc.collect()
     except KeyboardInterrupt:
-        if chat_session is not None and convo is not None and kw_detector is not None:
-            convo = chat_session.messages
-            timestamp = FileManager.get_datetime_string()
-            FileManager.save_json(
-                f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json", convo
-            )
-            print("\n\nGoodbye.")
-            kw_detector.close()
-            kw_detector.join()
+        convo = chat_session.messages
+        timestamp = FileManager.get_datetime_string()
+        FileManager.save_json(
+            f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json", convo
+        )
+        print("\n\nGoodbye.")
+        kw_detector.close()
+        kw_detector.join()
         # Save conversation when interrupted
         gc.collect()
 

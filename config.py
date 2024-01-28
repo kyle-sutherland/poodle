@@ -24,10 +24,13 @@ ONLINE_TRANSCRIBE = False  # Use online transcription service
 LOCAL_TRANSCRIBER_MODEL = "base"  # available models given by whisper.available_models()
 
 # Determines whether the response should be streamed or not
-STREAM_RESPONSE = True
+STREAM_RESPONSE = False
 # text-to-speech valid options: LOCAL, WHISPER, NONE
 SPEAK = "NONE"
 
+CHAT_MODEL = "gpt-4-1106-preview"
+PRESENCE_PENALTY = 1.0
+TEMPERATURE = 1.0
 SOUNDS = True
 
 KEYWORD = "computer"

@@ -32,10 +32,10 @@ def sim_typing_output(text: str, delay: float = 0.01):
 def get_chat_models_names() -> dict:
     models = FileManager.read_json("./models.json")
     model_names = {"gpt-3.5": [], "gpt-4": []}
-    for names in models["gpt-3.5"]:
-        model_names["gpt-3.5"].append(names["gpt-3.5"]["name"])
-    for names in models["gpt-4"]["name"]:
-        model_names["gpt-4"].append(names["gpt-4"]["name"])
+    for model in models["gpt-3.5"].keys():
+        model_names["gpt-3.5"].append(models["gpt-3.5"][model]["name"])
+    for model in models["gpt-4"].keys():
+        model_names["gpt-4"].append(models["gpt-4"][model]["name"])
     return model_names
 
 
