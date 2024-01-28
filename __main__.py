@@ -73,7 +73,7 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
             f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json",
             chat_manager.chat_completion_to_dict(resp),
         )
-        print(f"\n{content}\n")
+        print(textwrap.fill(f"\n{content}\n", width=100))
         logging.info(
             "\ntotal response time: "
             + f" {time.time() - ef.stream_write_time} seconds\n"
@@ -179,13 +179,15 @@ def main():
                     if config.SOUNDS:
                         # button-124476.mp3
                         playMp3Sound("./sounds/badcopy.mp3")
-                    print("I didn't hear you")
+                    print("I didn't hear you\n")
                     ef.silence.clear()
                     continue
                 if config.SOUNDS:
                     # start-13691.mp3
                     playMp3Sound("./sounds/listening.mp3")
-                print(f"I heard:\n\n   {trans_text[0]}\n\n Replying...\n\n")
+                print("I heard you say:\n")
+                print(textwrap.fill(trans_text[0], width=100))
+                print("\nReplying...\n")
                 do_request(chat_session, transcriptions)
             time.sleep(0.1)
     except Exception as e:
