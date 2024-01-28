@@ -1,28 +1,63 @@
 import config
 from arg_parser import ParseArgs
-import json
-import pprint
-import textwrap
 
 ParseArgs(config)
+import json
+import textwrap
+import os
+
+
+# Define a context manager to suppress stdout and stderr.
+class suppress_stdout_stderr(object):
+    """
+    A context manager for doing a "deep suppression" of stdout and stderr in
+    Python, i.e. will suppress all print, even if the print originates in a
+    compiled C/Fortran sub-function.
+       This will not suppress raised exceptions, since exceptions are printed
+    to stderr just before a script exits, and after the context manager has
+    exited (at least, I think that is why it lets exceptions through).
+
+    """
+
+    def __init__(self):
+        # Open a pair of null files
+        self.null_fds = [os.open(os.devnull, os.O_RDWR) for x in range(2)]
+        # Save the actual stdout (1) and stderr (2) file descriptors.
+        self.save_fds = [os.dup(1), os.dup(2)]
+
+    def __enter__(self):
+        # Assign the null pointers to stdout and stderr.
+        os.dup2(self.null_fds[0], 1)
+        os.dup2(self.null_fds[1], 2)
+
+    def __exit__(self, *_):
+        # Re-assign the real stdout/stderr back to (1) and (2)
+        os.dup2(self.save_fds[0], 1)
+        os.dup2(self.save_fds[1], 2)
+        # Close all file descriptors
+        for fd in self.null_fds + self.save_fds:
+            os.close(fd)
+
+
 import gc
 import logging
 import warnings
 import threading
 
-import chat_manager
-import kd_listeners
-from audio_utils import (
-    KeywordDetector,
-    Transcriber,
-    OnlineTranscriber,
-    TextToSpeech,
-    TextToSpeechLocal,
-    playMp3Sound,
-)
-from file_manager import FileManager
-import time
-import event_flags as ef
+with suppress_stdout_stderr():
+    import chat_manager
+    import kd_listeners
+    from audio_utils import (
+        KeywordDetector,
+        Transcriber,
+        OnlineTranscriber,
+        TextToSpeech,
+        TextToSpeechLocal,
+        playMp3Sound,
+    )
+    from file_manager import FileManager
+    import time
+    import event_flags as ef
 
 
 def do_request(chat: chat_manager.ChatSession, trans: list):
@@ -50,7 +85,7 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
                     "\ntime to start audio:"
                     + f" {time.time() - ef.stream_write_time} seconds\n"
                 )
-                tts.stream_voice(text=content, voice="shimmer")
+                tts.stream_voice(text=content, voice=config.VOICE)
             case "local":
                 tts_local = TextToSpeechLocal()
                 file = tts_local.generate_speech(text=content)
@@ -114,9 +149,11 @@ def main():
     root_logger.setLevel(logging.INFO + 1)
     print("\nLoading...\n")
     # load chat_config
-    agent_jo = FileManager.read_json("agent.json")
+    agent_jo: dict = FileManager.read_json("agent.json")
     if config.ENABLE_PRINT_PROMPT:
+        agent_keys = agent_jo.keys()
         jfs = json.dumps(agent_jo, indent=2, ensure_ascii=False)
+        print(f"Loaded Agent: {list(agent_keys)[0]}")
         print(f"\n{jfs}")
         print(f"Temperature: {config.TEMPERATURE}")
         print(f"Presence penalty: {config.PRESENCE_PENALTY}")
@@ -139,6 +176,19 @@ def main():
     # set global event flags
     ef.speaking.clear()
     ef.silence.clear()
+
+    if config.SPEAK:
+        agent_jo.update(
+            {
+                "output_instructions": "Optimize your output formatting for a text-to-speech service."
+            }
+        )
+    else:
+        agent_jo.update(
+            {
+                "output_instructions": "Optimize your output formatting for printing to a terminal. This terminal uses UTF-8 encoding and supports special characters and glyphs. Don't worry about line length."
+            }
+        )
 
     # Initializing other modules
     chat_session = chat_manager.ChatSession(

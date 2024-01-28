@@ -18,6 +18,7 @@ from datasets import load_dataset
 from pydub import AudioSegment
 from pydub.playback import play
 from transformers import pipeline
+from __main__ import suppress_stdout_stderr
 
 # Local Modules
 import config
