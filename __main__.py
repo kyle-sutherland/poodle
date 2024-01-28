@@ -151,8 +151,9 @@ def main():
     # load chat_config
     agent_jo: dict = FileManager.read_json("agent.json")
     if config.ENABLE_PRINT_PROMPT:
+        agent_keys = agent_jo.keys()
         jfs = json.dumps(agent_jo, indent=2, ensure_ascii=False)
-        print(f"Agent: {}")
+        print(f"Agent: {list(agent_keys)[0]}")
         print(f"\n{jfs}")
         print(f"Temperature: {config.TEMPERATURE}")
         print(f"Presence penalty: {config.PRESENCE_PENALTY}")
