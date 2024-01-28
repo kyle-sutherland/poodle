@@ -29,6 +29,20 @@ def sim_typing_output(text: str, delay: float = 0.01):
         sleep(delay)
 
 
+def get_chat_models_names() -> dict:
+    models = FileManager.read_json("./models.json")
+    model_names = {"gpt-3.5": [], "gpt-4": []}
+    for names in models["gpt-3.5"]:
+        model_names["gpt-3.5"].append(names["gpt-3.5"]["name"])
+    for names in models["gpt-4"]["name"]:
+        model_names["gpt-4"].append(names["gpt-4"]["name"])
+    return model_names
+
+
+def get_vosk_languages() -> dict:
+    return FileManager.read_json("./models.json")
+
+
 def chat_completion_to_dict(response):
     # Assuming 'response' is an instance of ChatCompletion
     # Convert it to a dictionary format

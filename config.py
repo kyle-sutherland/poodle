@@ -21,7 +21,7 @@ RESPONSE_LOG_PATH = "response_log/"  # Path to store response logs
 
 # Transcription settings
 ONLINE_TRANSCRIBE = False  # Use online transcription service
-LOCAL_TRANSCRIBER_MODEL = "base" # available models given by whisper.available_models()
+LOCAL_TRANSCRIBER_MODEL = "base"  # available models given by whisper.available_models()
 
 # Determines whether the response should be streamed or not
 STREAM_RESPONSE = True
@@ -32,5 +32,4 @@ SOUNDS = True
 
 KEYWORD = "computer"
 
-LANG = 'english-us'
-
+LANG = "english-us"
