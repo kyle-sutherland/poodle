@@ -111,8 +111,10 @@ def main():
     print("\nLoading...\n")
     # load chat_config
     chat_config = FileManager.read_json("chat_config.json")
+    # TODO: Make a function that loads all this stuff into variables at once.
+    # minimize calls to read_json()
     model = FileManager.read_json("models.json")
-    model = model["gpt-4"]["gpt-4-1106-preview"]
+    model = model[config.CHAT_MODEL]
     # initialize kw_detector
     kw_detector = KeywordDetector(config.KEYWORD)
     # add keyword_detector event listeners
@@ -179,6 +181,7 @@ def main():
         kw_detector.close()
         kw_detector.join()
         gc.collect()
+        quit()
     except KeyboardInterrupt:
         convo = chat_session.messages
         timestamp = FileManager.get_datetime_string()
@@ -190,6 +193,7 @@ def main():
         kw_detector.join()
         # Save conversation when interrupted
         gc.collect()
+        quit()
 
 
 if __name__ == "__main__":
