@@ -16,7 +16,7 @@ parser.add_argument(
     "--keyword",
     nargs=1,
     action="store",
-    help="Choose a keyword to use. Default: 'computer'",
+    help="Choose a keyword to use. Default: 'computer'\n\n",
 )
 
 parser.add_argument(
@@ -24,7 +24,7 @@ parser.add_argument(
     "--model",
     nargs=1,
     action="store",
-    help="Select a chatgpt model to use. Use argument 'help' to show a list of available models.",
+    help="Select a chatgpt model to use. Use argument 'help' to show a list of available models.\n\n",
 )
 
 parser.add_argument(
@@ -33,7 +33,7 @@ parser.add_argument(
     metavar="model_info",
     nargs=1,
     action="store",
-    help="Show information about a particular chatgpt model",
+    help="Show information about a particular chatgpt model\n\n",
 )
 
 parser.add_argument(
@@ -64,15 +64,22 @@ parser.add_argument(
 #     # TODO: Needs function for parsing markdown file
 # )
 
-parser.add_argument("--sounds", action="store_true", help="Play feedback sounds")
+parser.add_argument(
+    "-sp",
+    "--showprompt",
+    action="store_true",
+    help="Print the initial prompt/agent you are about to use.",
+)
+
+parser.add_argument("--sounds", action="store_true", help="Play feedback sounds\n\n")
 
 parser.add_argument(
     "--speak",
     action="store_true",
-    help="enable speech synthesis. Cannot be used with --stream. Options are: 'local', 'cloud'.",
+    help="enable speech synthesis. Cannot be used with --stream. Options are: 'local', 'cloud'.\n\n",
 )
 
-parser.add_argument("--stream", action="store_true", help="Stream response text.")
+parser.add_argument("--stream", action="store_true", help="Stream response text.\n\n")
 
 parser.add_argument(
     "-t",
@@ -82,17 +89,16 @@ parser.add_argument(
     help="Choose a whisper model to use for local transcription. If omitted,\n"
     + "config value transcription will be used. Use argument 'help' to show\n"
     + "a list of available whisper models. Use argument 'cloud' to use\n"
-    + "openai cloud transcription.",
+    + "openai cloud transcription.\n\n",
 )
 
 parser.add_argument(
     "--temp",
     nargs=1,
-    choices=range(0, 2),
     type=float,
     action="store",
     help="Set a temperatature to use for the completion between 0.0 and 2.0.\n "
-    +"See openai api docs for more information about 'temperature'."
+    + "See openai api docs for more information about 'temperature'.\n\n",
 )
 
 parser.add_argument(
@@ -100,16 +106,13 @@ parser.add_argument(
     "--presence-penalty",
     metavar="presence_penalty",
     nargs=1,
-    choices=range(0, 2),
     type=float,
     action="store",
-    help="Set a presence penalty to use for the completion between 0.0 and 2.0. "
-    +"See openai api docs\n "
-    +" for more information about 'presence penalty'."
-
+    help="Set a presence penalty to use for the completion between 0.0 and 2.0.\n"
+    + "See openai api docs for more information about 'presence penalty'.\n\n",
 )
 
-parser.add_argument("-log", action="store_true", help="log information to console")
+parser.add_argument("-log", action="store_true", help="log information to console\n\n")
 
 
 def get_sorted_chat_models_names(models) -> dict:
@@ -124,11 +127,10 @@ def get_sorted_chat_models_names(models) -> dict:
 
 def ParseArgs(config):
     args = parser.parse_args()
-    print(args)
     if help is args:
         print(args.help)
     if args.stream is True and args.stream is True:
-        print("option '--stream' cannot be used with option '--speak'")
+        print("option '--stream' cannot be used with option '--speak'. Continuing.\n\n")
 
     if args.keyword is not None:
         config.KEYWORD = args.keyword[0]
@@ -146,10 +148,13 @@ def ParseArgs(config):
             quit()
         elif args.model[0] in models:
             config.CHAT_MODEL = args.model[0]
-            print(f"\nmodel selected: {config.CHAT_MODEL}")
+            print(f"\nmodel selected: {config.CHAT_MODEL}\n\n")
         else:
             print(f"{args.model[0]} is not a valid chatgpt model")
             quit()
+
+    if args.showprompt is not None:
+        config.ENABLE_PRINT_PROMPT = args.showprompt
 
     if args.language is not None:
         langs = FileManager.read_json("./vosk_langs.json")
@@ -161,7 +166,7 @@ def ParseArgs(config):
         elif args.language[0] in langs:
             config.VOSK_LANGUAGE = args.language[0]
             print(
-                f"\nvosk (keyword detector) language selected: {config.VOSK_LANGUAGE}"
+                f"\nvosk (keyword detector) language selected: {config.VOSK_LANGUAGE}\n\n"
             )
         else:
             print(f"{args.language[0]} is not a valid vosk language")
@@ -194,7 +199,17 @@ def ParseArgs(config):
             config.LOCAL_TRANCSCIBER_MODEL = args.transcription[0]
 
     if args.temp is not None:
-        config.TEMPERATURE = args.temp
+        if args.temp[0] >= 0.0 and args.temp[0] <= 2.0:
+            config.TEMPERATURE = args.temp[0]
+        else:
+            print(
+                f"Temperature must be between 0.0 and 2.0. Continuing with default. {config.TEMPERATURE}"
+            )
 
     if args.presence_penalty is not None:
-        config.PRESENCE_PENALTY = args.presence_penalty
+        if args.presence_penalty[0] >= 0.0 and args.presence_penalty[0] <= 2.0:
+            config.PRESENCE_PENALTY = args.presence_penalty[0]
+        else:
+            print(
+                f"Temperature must be between 0.0 and 2.0. Continuing with default {config.PRESENCE_PENALTY}."
+            )

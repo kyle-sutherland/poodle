@@ -1,5 +1,8 @@
 import config
 from arg_parser import ParseArgs
+import json
+import pprint
+import textwrap
 
 ParseArgs(config)
 import gc
@@ -112,6 +115,14 @@ def main():
     print("\nLoading...\n")
     # load chat_config
     chat_config = FileManager.read_json("chat_config.json")
+    if config.ENABLE_PRINT_PROMPT:
+        js = "" + chat_config["prompt"]
+        jo = json.loads(js)
+        jfs = json.dumps(jo, indent=2, ensure_ascii=False)
+        print(f"\n{jfs}")
+        print(f"Temperature: {config.TEMPERATURE}")
+        print(f"Presence penalty: {config.PRESENCE_PENALTY}")
+        print("\n")
     # TODO: Make a function that loads all this stuff into variables at once.
     # minimize calls to read_json()
     model = FileManager.read_json("models.json")
@@ -135,8 +146,10 @@ def main():
     chat_session = chat_manager.ChatSession(
         chat_config["prompt"],
         model["name"],
-        chat_config["temperature"],
-        chat_config["presence_penalty"],
+        # chat_config["temperature"],
+        # chat_config["presence_penalty"],
+        config.TEMPERATURE,
+        config.PRESENCE_PENALTY,
         model["token_limit"],
         model["limit_thresh"],
     )

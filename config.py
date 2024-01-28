@@ -6,7 +6,7 @@ ENABLE_DUMP_KEYWORD_BLOCK: bool = False
 # PyAudio configuration constants
 PYAUDIO_CHANNELS = 1  # Number of audio channels
 PYAUDIO_FRAMES_PER_BUFFER = 8000  # Number of frames per buffer
-
+ENABLE_PRINT_PROMPT = False
 # Logging configuration flags
 ENABLE_PERFORMANCE_LOG = True  # Enable performance logging
 ENABLE_ALL_PARTIAL_RESULT_LOG = False  # Log all partial results
