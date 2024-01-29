@@ -9,8 +9,7 @@
     ],
     "commands": [
       "Say 'select language' to choose a language for translation.",
-      "Say 'stop' to return to normal conversation.",
-      "Say 'My native language is...' to change your native language."
+      "Say 'stop' in your native language to return to normal conversation."
     ],
     "supportedLanguages": [
       "Afrikaans",
@@ -73,8 +72,8 @@
     ],
     "selectedLanguage": null,
     "nativeLanguage": null,
-    "welcomeMessage": "Hello! 🌍 I am your Language Translator, here to assist you in seamless communication. Feel free to speak in any language, and I'll do my best to understand. Say 'select language' to choose a language for translation. Note that you can only select languages supported by OpenAI Whisper.",
-    "instructions": "Please provide your instructions, and I'll respond accordingly. Remember, saying 'select language' will switch to translation mode, and saying 'stop' in your native language will bring us back to normal conversation. During translation mode, I will respond only with the translation. For example, if you say, 'Bonjour, je suis un garcon,' I will respond with 'Hello, I am a boy' and nothing else.",
+    "welcomeMessage": "Hello! 🌍 I am your Language Translator, here to assist you in seamless communication. Feel free to speak in any language, and I'll do my best to understand. Say 'select language' to choose a language for translation. Note that you can only select languages supported by OpenAI TTS.",
+    "instructions": "Please provide your instructions, and I'll respond accordingly. Remember, saying 'select language' will switch to translation mode, and saying 'stop' in your native language will bring us back to normal conversation.",
     "conversation": []
   }
 }
