@@ -100,11 +100,10 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
     # Start TTS in a separate thread
     tts_thread = threading.Thread(target=tts_task)
     tts_thread.start()
-
     if not config.STREAM_RESPONSE:
         chat.add_reply_entry(resp)
         tstamp = FileManager.get_datetime_string()
-        FileManager.save_json(
+        FileManager.save_jsonStreaming terminal output is broken.(
             f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json",
             chat_manager.chat_completion_to_dict(resp),
         )
@@ -116,6 +115,8 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
     else:
         chat.extract_streamed_resp_deltas(resp)
 
+# BORKEN don't use
+# TODO: fix this 
     if not config.STREAM_RESPONSE:
         if chat.is_model_near_limit_thresh(resp):
             s = chat.summarize_conversation()
