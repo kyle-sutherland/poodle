@@ -3,7 +3,7 @@ import logging
 import time
 import json
 
-import chat_manager
+import chat_utils
 import config
 import event_flags
 from audio_utils import (
@@ -28,7 +28,7 @@ def kwl_print_keyword_message(keyword, data, stream_write_time):
     logging.info(f"Time from stream write to keyword trigger: {trigger_time} seconds")
     if config.SOUNDS:
         playMp3Sound("./sounds/listening.mp3")
-    chat_manager.sim_typing_output(f" This is {keyword}. I am listening.", 0.02)
+    chat_utils.sim_typing_output(f" This is {keyword}. I am listening.", 0.02)
     print("\n")
     if config.SPEAK == "WHISPER":
         if tts.is_audio_playing():

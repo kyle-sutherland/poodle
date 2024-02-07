@@ -45,7 +45,7 @@ import warnings
 import threading
 
 with suppress_stdout_stderr():
-    import chat_manager
+    import chat_utils
     import kd_listeners
     from audio_utils import (
         KeywordDetector,
@@ -60,11 +60,11 @@ with suppress_stdout_stderr():
     import event_flags as ef
 
 
-def do_request(chat: chat_manager.ChatSession, trans: list):
+def do_request(chat: chat_utils.ChatSession, trans: list):
     """Sends a request with the transcribed text and processes the response.
 
     Parameters:
-    - chat (chat_manager.ChatSession): The current chat session.
+    - chat (chat_utils.ChatSession): The current chat session.
     - trans (str): The transcribed text to send.
 
     Side Effects:
@@ -105,7 +105,7 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
         tstamp = FileManager.get_datetime_string()
         FileManager.save_json(
             f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json",
-            chat_manager.chat_completion_to_dict(resp),
+            chat_utils.chat_completion_to_dict(resp),
         )
         print(textwrap.fill(f"\n{content}\n", width=100))
         logging.info(
@@ -123,7 +123,7 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
             chat.add_summary(s)
             FileManager.save_json(
                 f"{config.RESPONSE_LOG_PATH}response_{FileManager.get_datetime_string()}.json",
-                chat_manager.chat_completion_to_dict(s),
+                chat_utils.chat_completion_to_dict(s),
             )
 
     ef.silence.clear()
@@ -150,10 +150,10 @@ def main():
     root_logger.setLevel(logging.INFO + 1)
     print("\nLoading...\n")
     # load chat_config
-    agent_jo: dict = FileManager.read_json(config.AGENT_PATH)
+    prompt_jo: dict = FileManager.read_json(config.AGENT_PATH)
     if config.ENABLE_PRINT_PROMPT:
-        agent_keys = agent_jo.keys()
-        jfs = json.dumps(agent_jo, indent=2, ensure_ascii=False)
+        agent_keys = prompt_jo.keys()
+        jfs = json.dumps(prompt_jo, indent=2, ensure_ascii=False)
         print(f"Loaded Agent: {list(agent_keys)[0]}")
         print(f"\n{jfs}")
         print(f"Temperature: {config.TEMPERATURE}")
@@ -179,21 +179,21 @@ def main():
     ef.silence.clear()
 
     if config.SPEAK:
-        agent_jo.update(
+        prompt_jo.update(
             {
                 "output_instructions": "Optimize your output formatting for a text-to-speech service."
             }
         )
     else:
-        agent_jo.update(
+        prompt_jo.update(
             {
                 "output_instructions": "Optimize your output formatting for printing to a terminal. This terminal uses UTF-8 encoding and supports special characters and glyphs. Don't worry about line length."
             }
         )
 
     # Initializing other modules
-    chat_session = chat_manager.ChatSession(
-        json.dumps(agent_jo, indent=None, ensure_ascii=True),
+    chat_session = chat_utils.ChatSession(
+        json.dumps(prompt_jo, indent=None, ensure_ascii=True),
         model["name"],
         # chat_config["temperature"],
         # chat_config["presence_penalty"],
@@ -225,7 +225,7 @@ def main():
                 transcriptions = FileManager.read_transcriptions(
                     config.TRANSCRIPTION_PATH
                 )
-                trans_text = chat_manager.extract_trans_text(transcriptions)
+                trans_text = chat_utils.extract_trans_text(transcriptions)
                 if len(trans_text) == 0:
                     if config.SOUNDS:
                         # button-124476.mp3
