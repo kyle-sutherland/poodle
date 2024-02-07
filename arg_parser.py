@@ -44,15 +44,14 @@ parser.add_argument(
     + "to show a list of available languages.",
 )
 
-# parser.add_argument(
-#     "-p",
-#     "--prompt",
-#     nargs=1,
-#     action="store",
-#     help="Choose a stored prompt by name. Use argument 'help' to show a list of available prompts.",
-#     # TODO: Add handler
-#     # TODO: Needs proper prompt library for this
-# )
+parser.add_argument(
+    "-a",
+    "--agent",
+    nargs=1,
+    action="store",
+    help="Enter path for agent file to use. Use argument 'help' to show a list of available prompts.",
+    # TODO: Needs proper prompt-management library for this
+)
 
 # parser.add_argument(
 #     "-pc",
@@ -130,6 +129,10 @@ def ParseArgs(config):
     args = parser.parse_args()
     if help is args:
         print(args.help)
+
+    if args.agent is not None:
+        config.AGENT_PATH = args.agent[0]
+
     if args.stream is True and args.stream is True:
         print("option '--stream' cannot be used with option '--speak'. Continuing.\n\n")
 
