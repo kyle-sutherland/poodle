@@ -103,7 +103,7 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
     if not config.STREAM_RESPONSE:
         chat.add_reply_entry(resp)
         tstamp = FileManager.get_datetime_string()
-        FileManager.save_jsonStreaming terminal output is broken.(
+        FileManager.save_json(
             f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json",
             chat_manager.chat_completion_to_dict(resp),
         )
@@ -115,8 +115,8 @@ def do_request(chat: chat_manager.ChatSession, trans: list):
     else:
         chat.extract_streamed_resp_deltas(resp)
 
-# BORKEN don't use
-# TODO: fix this 
+    # BORKEN don't use
+    # TODO: fix this
     if not config.STREAM_RESPONSE:
         if chat.is_model_near_limit_thresh(resp):
             s = chat.summarize_conversation()
@@ -150,7 +150,7 @@ def main():
     root_logger.setLevel(logging.INFO + 1)
     print("\nLoading...\n")
     # load chat_config
-    agent_jo: dict = FileManager.read_json("agent.json")
+    agent_jo: dict = FileManager.read_json(config.AGENT_PATH)
     if config.ENABLE_PRINT_PROMPT:
         agent_keys = agent_jo.keys()
         jfs = json.dumps(agent_jo, indent=2, ensure_ascii=False)

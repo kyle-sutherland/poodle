@@ -11,10 +11,11 @@ body_transcriptions/**
 conversations/**
 response_log/**
 api_keys/**
-gen_logs/**
+gen_logs/*/*
 *.wav
 __pycache__
 *.pyc
 nothing.py
 pytorch_model.bin
 pyrightconfig.json
+agents/**
