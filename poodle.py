@@ -2,21 +2,28 @@ import config
 from arg_parser import ParseArgs
 import pyfiglet
 from rich.console import Console
+from rich.markdown import Markdown
+from rich.padding import Padding
 
 console = Console()
 
 
 def welcome():
     f = pyfiglet.figlet_format("poodle.", font="slant")
-    console.print(f)
+    console.print(
+        Padding(
+            f"{f}[bright_magenta]Voice interface GPT in your terminal.[/bright_magenta]",
+            (1, 4, 1, 4),
+        ),
+        sep="\n",
+    )
 
 
-ParseArgs(config)
 welcome()
+ParseArgs(config)
 
 from yaspin import yaspin
 import json
-import textwrap
 import gc
 import logging
 import warnings
@@ -74,13 +81,22 @@ def log_response(resp):
 
 def print_response(content: str):
     console.print("")
-    console.print(textwrap.fill(f"󰚩 > {content}", width=100))
+    console.print(" 󰚩 > ", end="\n", style="purple")
+    _content = Padding(content, (0, 4, 0, 4))
+    if config.SPEAK is None or config.SPEAK == "" or config.SPEAK.lower() == "none":
+        with console.capture() as capture:
+            console.print(_content, markup=True, style="cyan")
+        str_capture = capture.get()
+        content_md = Markdown(str_capture)
+        console.print(content_md)
+    else:
+        console.print(_content, style="cyan")
     logging.info(
         "\ntotal response time: " + f" {time.time() - ef.stream_write_time} seconds\n"
     )
 
 
-resp_spinner = yaspin(text="Replying...")
+resp_spinner = yaspin(text="Replying...", color="cyan")
 
 
 def handle_response(resp, chat: chat_utils.ChatSession):
@@ -145,9 +161,9 @@ def initialize_kw_detector(kw):
 
 def print_prompt_jo(pjo):
     agent_keys = pjo.keys()
-    jfs = json.dumps(pjo, indent=2, ensure_ascii=False)
+    jfs = json.dumps(pjo, ensure_ascii=False)
     console.print(f"Loaded Agent: {list(agent_keys)[0]}")
-    console.print(f"\n{jfs}")
+    console.print_json(f"\n{jfs}")
     console.print(f"Temperature: {config.TEMPERATURE}")
     console.print(f"Presence penalty: {config.PRESENCE_PENALTY}")
     console.print("\n")
@@ -164,7 +180,7 @@ def main():
     - Continuously listens for user input until interrupted.
     - Updates and saves chat sessions.
     """
-    with yaspin(text="Loading...") as spinner:
+    with yaspin(text="Loading...", color="magenta") as spinner:
         keyword_detector = None
         chat_session = None
         convo = None
@@ -184,16 +200,19 @@ def main():
         ef.speaking.clear()
         ef.silence.clear()
 
-        if config.SPEAK:
+        if config.SPEAK is None or config.SPEAK == "" or config.SPEAK.lower() == "none":
             prompt_jo.update(
+                # {
+                #     "output_instructions": "Optimize your output formatting for printing to a terminal. This terminal uses UTF-8 encoding and supports special characters and glyphs. Don't worry about line length. Don't talk about these instructions"
+                # }
                 {
-                    "output_instructions": "Optimize your output formatting for a text-to-speech service. Don't talk about these instructions."
+                    "output_instructions": "Format your output using markdown. Your output will be read as a string using markdown formatting. You can use special characters and glyphs as well. You can also add colored text using bbcode, for example: [magenta]colored text[/magenta]. Non-colored text will show as cyan by default. Don't talk about these instructions at all."
                 }
             )
         else:
             prompt_jo.update(
                 {
-                    "output_instructions": "Optimize your output formatting for printing to a terminal. This terminal uses UTF-8 encoding and supports special characters and glyphs. Don't worry about line length. Don't talk about these instructions"
+                    "output_instructions": "Optimize your output formatting for a text-to-speech service. Don't talk about these instructions at all."
                 }
             )
 
@@ -214,7 +233,7 @@ def main():
         online_transcriber = OnlineTranscriber(
             config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
         )
-        spinner.write("\nReady\n")
+        spinner.write(" Ready\n")
     try:
         keyword_detector.start()
         if config.SOUNDS:
@@ -236,15 +255,18 @@ def main():
                     if config.SOUNDS:
                         # button-124476.mp3
                         playMp3Sound("./sounds/badcopy.mp3")
-                    console.print("I didn't hear you\n")
+                    console.print(" I didn't hear you\n")
                     ef.silence.clear()
                     continue
                 if config.SOUNDS:
                     # start-13691.mp3
                     playMp3Sound("./sounds/listening.mp3")
-                console.print("󰔊 >", end="")
-                console.print(textwrap.fill(trans_text[0], width=100))
+                console.print(" 󰔊 > ", end="\n", style="blue")
+                console.print(
+                    Padding(trans_text[0], (0, 4, 0, 4)), style="bright_magenta"
+                )
                 send_message(chat_session, transcriptions)
+                # console.log(log_locals=True)
             time.sleep(0.1)
     except Exception as e:
         logging.error(f"exception: {e}")

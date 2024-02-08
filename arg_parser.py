@@ -2,7 +2,9 @@ import argparse
 import json
 from file_manager import FileManager
 import whisper
+from rich import print
 from rich.console import Console
+from rich.tree import Tree
 from tabulate import tabulate
 
 console = Console()
@@ -147,6 +149,7 @@ def ParseArgs(config):
     if args.model is not None:
         models = FileManager.read_json("./models.json")
         sorted_models = get_sorted_chat_models_names(models)
+        tree = Tree(sorted_models)
         if args.model[0] == "help":
             console.print("\navailable models:\n")
             console.print(tabulate(sorted_models))

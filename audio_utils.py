@@ -19,7 +19,6 @@ from datasets import load_dataset
 from pydub import AudioSegment
 from pydub.playback import play
 from transformers import pipeline
-from __main__ import suppress_stdout_stderr
 
 # Local Modules
 import config
@@ -148,7 +147,7 @@ class Transcriber:
         self.model = config.LOCAL_TRANSCRIBER_MODEL
         self.mod = whisper.load_model(self.model, self.device)
 
-    @yaspin(text="Transcribing...")
+    @yaspin(text="Transcribing...", color="yellow")
     def transcribe_bodies(self):
         while len(os.listdir(self.audio_directory)) != 0:
             for file in os.listdir(self.audio_directory):
@@ -199,7 +198,7 @@ class AudioRecorder:
         self.sample_rate = int(self.default_device_info["defaultSampleRate"])
         self.frames_per_buffer = 2048
         self.frames = []
-        self.stream
+        self.stream = None
 
     def start_recording(self):
         stream = self.pa.open(
@@ -262,6 +261,7 @@ class TextToSpeech:
         self.playback_thread = None
         self.stop_playback = threading.Event()
 
+    @yaspin(text="Speaking...", color="yellow")
     def stream_voice(self, text, voice):
         response = self.tts.speech.create(
             model=self.model, voice=voice, input=text, response_format="mp3", speed=1.1
@@ -312,6 +312,7 @@ class TextToSpeechLocal:
         self.play_obj = None
         self.playback_thread = None
 
+    @yaspin(text="Vocalizing...", color="yellow")
     def generate_speech(self, text, file_name="speech.wav"):
         speech = self.synthesiser(
             text, forward_params={"speaker_embeddings": self.speaker_embedding}
@@ -319,6 +320,7 @@ class TextToSpeechLocal:
         soundfile.write(file_name, speech["audio"], samplerate=speech["sampling_rate"])
         return file_name
 
+    @yaspin(text="Speaking...", color="yellow")
     def play_audio(self, file_name):
         if self.playback_thread and self.playback_thread.is_alive():
             self.stop_audio()  # Stop any currently playing audio
