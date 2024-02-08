@@ -2,6 +2,10 @@
 import ast
 import logging
 from time import sleep
+from rich.console import Console
+from rich import print
+
+console = Console()
 
 import openai
 from openai.types.chat import ChatCompletion, chat_completion_chunk
@@ -80,12 +84,12 @@ class ChatSession:
 
     def __init__(
         self,
-        initial_prompt: str = None,
-        model: str = None,
-        temperature: float = None,
-        presence_penalty: float = None,
-        token_limit: int = None,
-        limit_thresh: float = None,
+        initial_prompt,
+        model: str,
+        temperature: float,
+        presence_penalty: float,
+        token_limit: int,
+        limit_thresh: float,
     ):
         self.ai = openai
         self.ai.api_key = FileManager.read_file("api_keys/keys")
@@ -145,10 +149,10 @@ class ChatSession:
         for chunk in resp:
             chunk_message = chunk.choices[0].delta
             if chunk_message.content is not None:
-                print(chunk_message.content, end="", flush=True)
+                console.print(chunk_message.content, end="", flush=True)
             collected_messages.append(chunk_message)
             collected_chunks.append(chunk)
-        print("\n\n")
+        console.print("\n\n")
         full_reply_content = "".join([m.get("content", "") for m in collected_messages])
         self.messages.append({"role": "assistant", "content": full_reply_content})
         tstamp = FileManager.get_datetime_string()
@@ -171,7 +175,7 @@ class ChatSession:
             return self.error_completion
 
     def summarize_conversation(self):
-        print("\nSummarizing conversation. Please wait...\n")
+        console.print("\nSummarizing conversation. Please wait...\n")
         m = self.messages[1:]
         prompt = [
             {
@@ -194,7 +198,7 @@ class ChatSession:
             )
             return chat_completion
         except Exception as e:
-            print(f"Error sending request: {e}")
+            console.print(f"Error sending request: {e}")
             return self.error_completion
 
     def add_summary(self, summary):
@@ -205,7 +209,7 @@ class ChatSession:
             for i in r_parsed:
                 m.append(i)
         except SyntaxError as e:
-            print(f"{e}")
+            console.print(f"{e}")
 
-        print("\nSummary complete\n")
-        # print(f"\n{self.messages}")
+        console.print("\nSummary complete\n")
+        # console.print(f"\n{self.messages}")

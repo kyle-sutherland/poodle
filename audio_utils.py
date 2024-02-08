@@ -6,6 +6,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
+from yaspin import yaspin
 
 # Third Party Libraries
 import openai
@@ -92,6 +93,12 @@ class KeywordDetector(threading.Thread):
         for listener in self.partial_listeners:
             self.executor.submit(listener, data)
 
+    def toggle_detector(self):
+        if self.running.isSet():
+            self.running.clear()
+        else:
+            self.running.set()
+
     def close(self):
         self.running.clear()
         self.fetcher.stop()  # use the stop method of AudioFetcher
@@ -141,6 +148,7 @@ class Transcriber:
         self.model = config.LOCAL_TRANSCRIBER_MODEL
         self.mod = whisper.load_model(self.model, self.device)
 
+    @yaspin(text="Transcribing...")
     def transcribe_bodies(self):
         while len(os.listdir(self.audio_directory)) != 0:
             for file in os.listdir(self.audio_directory):
@@ -164,6 +172,7 @@ class OnlineTranscriber:
         self.ai = openai
         self.api_key = FileManager.read_file("api_keys/keys")
 
+    @yaspin(text="Transcribing...")
     def online_transcribe_bodies(self):
         if len(os.listdir(self.audio_directory)) != 0:
             for file in os.listdir(self.audio_directory):
@@ -190,7 +199,7 @@ class AudioRecorder:
         self.sample_rate = int(self.default_device_info["defaultSampleRate"])
         self.frames_per_buffer = 2048
         self.frames = []
-        self.stream = None
+        self.stream
 
     def start_recording(self):
         stream = self.pa.open(
@@ -221,7 +230,7 @@ class AudioRecorder:
 
 
 class SilenceWatcher:
-    def __init__(self, silence_threshold=12, silence_duration=1.7):
+    def __init__(self, silence_threshold=12, silence_duration=1.4):
         self.silence_threshold = silence_threshold
         self.silence_duration = silence_duration
         self.silence_counter = 0
@@ -255,7 +264,7 @@ class TextToSpeech:
 
     def stream_voice(self, text, voice):
         response = self.tts.speech.create(
-            model=self.model, voice=voice, input=text, response_format="mp3"
+            model=self.model, voice=voice, input=text, response_format="mp3", speed=1.1
         )
         audio_data = BytesIO(response.content)
         audio_segment = AudioSegment.from_file(audio_data, format="mp3")

@@ -2,6 +2,7 @@
 import logging
 import time
 import json
+from rich.console import Console
 
 import chat_utils
 import config
@@ -21,6 +22,7 @@ audio_recorder = AudioRecorder()
 transcriber = Transcriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
 tts = TextToSpeech()
 tts_local = TextToSpeechLocal()
+console = Console()
 
 
 def kwl_print_keyword_message(keyword, data, stream_write_time):
@@ -29,11 +31,11 @@ def kwl_print_keyword_message(keyword, data, stream_write_time):
     if config.SOUNDS:
         playMp3Sound("./sounds/listening.mp3")
     chat_utils.sim_typing_output(f" This is {keyword}. I am listening.", 0.02)
-    print("\n")
-    if config.SPEAK == "WHISPER":
+    console.print("\n")
+    if config.SPEAK.lower() == "cloud":
         if tts.is_audio_playing():
             tts.stop_audio()
-    if config.SPEAK == "LOCAL":
+    if config.SPEAK.lower() == "local":
         tts_local.stop_audio()
     else:
         pass
@@ -46,10 +48,10 @@ def kwl_start_recording(keyword, data, stream_write_time):
 
 
 def kwl_stop_audio(keyword, data, stream_write_time):
-    if config.SPEAK == "WHISPER":
+    if config.SPEAK.lower == "cloud":
         if tts.is_audio_playing():
             tts.stop_audio()
-    if config.SPEAK == "LOCAL":
+    if config.SPEAK == "local":
         tts_local.stop_audio()
     else:
         pass
@@ -57,14 +59,14 @@ def kwl_stop_audio(keyword, data, stream_write_time):
 
 def pl_print_all_partials(partial_result):
     pr = json.loads(partial_result)
-    print(pr)
+    console.print(pr)
 
 
 def pl_print_active_speech_only(partial_result):
     pr = json.loads(partial_result)
     for key in pr:
         if pr[key] != "":
-            print(pr[key])
+            console.print(pr[key])
 
 
 def pl_no_speech(partial_result):
