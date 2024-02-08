@@ -191,34 +191,37 @@ def ParseArgs(config):
     if args.speak is not None:
         whisper_info = FileManager.read_json("./whisper.json")
         if len(args.speak) > 0:
-            opts = args.speak[0:-1]
-        opts = args.speak[0:]
-        for opt in opts:
-            match opt:
-                case "help":
-                    print(
-                        " [...opts,], [VOICE] options:\n\tlocal: use local transcription\n\tcloud: use openai cloud transcription\n\nvoices: print list of available voices\n\tlanguages: print list of languages supported by cloud\n\nvoices: print list of available voices for cloud\n\nVOICE: select a voice to use."
-                    )
-                case "languages":
-                    print("\nlanguages supported by openai cloud TTS:\n")
-                    for lang in whisper_info["languages"]:
-                        print(f"\t{lang}")
-                    print("\n", end="")
-                case "voices":
-                    print("\nvoices available for openai cloud TTS:\n")
-                    for voice in whisper_info["voices"]:
-                        print(f"\t{voice}")
-                    print("\n", end="")
-                case "cloud" | "local":
-                    i = 0
-                    if i < 1:
+            opts = args.speak[0:]
+            for opt in opts:
+                match opt:
+                    case "help":
+                        print(
+                            " [...opts,], [VOICE] Leave blank to use cloud tts and whatever voice is selected in your config options:\n\tlocal: use local transcription.\n\tcloud: use openai cloud transcription.\n\nvoices: print list of available voices\n\tlanguages: print list of languages supported by cloud\n\nvoices: print list of available voices for cloud\n\nVOICE: select a voice to use."
+                        )
+                    case "languages":
+                        print("\nlanguages supported by openai cloud TTS:\n")
+                        for lang in whisper_info["languages"]:
+                            print(f"\t{lang}")
+                        print("\n", end="")
+                    case "voices":
+                        print("\nvoices available for openai cloud TTS:\n")
+                        for voice in whisper_info["voices"]:
+                            print(f"\t{voice}")
+                        print("\n", end="")
+                    case "cloud":
                         config.SPEAK = opt
-                        i = i + 1
-                    else:
-                        print("\ncloud or local cannot be used at the same time.")
-        voice = args.speak[-1]
-        if args.speak[-1] in whisper_info["voices"]:
-            config.VOICE = voice
+                    case "local":
+                        config.SPEAK = opt
+                    case _:
+                        config.SPEAK = "cloud"
+            print(f"using {config.SPEAK} tts")
+            if args.speak[-1] is not None and config.SPEAK.lower() != "local":
+                voice = args.speak[-1]
+                if args.speak[-1] in whisper_info["voices"]:
+                    config.VOICE = voice
+                    print(f"Voice: {config.VOICE} selected.\n")
+                else:
+                    print(f"voice not found. Using config: {config.VOICE}\n")
 
     if args.transcription is not None:
         if args.transcription[0] == "help":

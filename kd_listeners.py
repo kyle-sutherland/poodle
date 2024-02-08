@@ -2,6 +2,7 @@
 import logging
 import time
 import json
+from prompt_toolkit import print_formatted_text as print
 
 import chat_utils
 import config
@@ -30,10 +31,10 @@ def kwl_print_keyword_message(keyword, data, stream_write_time):
         playMp3Sound("./sounds/listening.mp3")
     chat_utils.sim_typing_output(f" This is {keyword}. I am listening.", 0.02)
     print("\n")
-    if config.SPEAK == "WHISPER":
+    if config.SPEAK.lower() == "cloud":
         if tts.is_audio_playing():
             tts.stop_audio()
-    if config.SPEAK == "LOCAL":
+    if config.SPEAK.lower() == "local":
         tts_local.stop_audio()
     else:
         pass
@@ -46,10 +47,10 @@ def kwl_start_recording(keyword, data, stream_write_time):
 
 
 def kwl_stop_audio(keyword, data, stream_write_time):
-    if config.SPEAK == "WHISPER":
+    if config.SPEAK.lower == "cloud":
         if tts.is_audio_playing():
             tts.stop_audio()
-    if config.SPEAK == "LOCAL":
+    if config.SPEAK == "local":
         tts_local.stop_audio()
     else:
         pass

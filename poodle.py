@@ -60,7 +60,75 @@ with suppress_stdout_stderr():
     import event_flags as ef
 
 
-def do_request(chat: chat_utils.ChatSession, trans: list):
+def speak_response(content):
+    def tts_task():
+        match config.SPEAK.lower():
+            case "cloud":
+                tts = TextToSpeech()
+                logging.info(
+                    "\ntime to start audio(cloud):"
+                    + f" {time.time() - ef.stream_write_time} seconds\n"
+                )
+                tts.stream_voice(text=content, voice=config.VOICE)
+            case "local":
+                tts_local = TextToSpeechLocal()
+                file = tts_local.generate_speech(text=content)
+                logging.info(
+                    "\ntime to start audio(local): "
+                    + f" {time.time() - ef.stream_write_time} seconds\n"
+                )
+                tts_local.play_audio(file)
+            case _:
+                pass
+
+    # Start TTS in a separate thread
+    return threading.Thread(target=tts_task)
+
+
+def log_response(resp):
+    tstamp = FileManager.get_datetime_string()
+    FileManager.save_json(
+        f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json",
+        chat_utils.chat_completion_to_dict(resp),
+    )
+
+
+def print_response(content: str):
+    print("")
+    print(textwrap.fill(f"󰚩 > {content}", width=100))
+    logging.info(
+        "\ntotal response time: " + f" {time.time() - ef.stream_write_time} seconds\n"
+    )
+
+
+def handle_response(resp, chat: chat_utils.ChatSession):
+    content = resp.choices[0].message.content
+    tts_thread = None
+    if config.SPEAK is not None or config.SPEAK != "" or config.SPEAK.lower() != "none":
+        tts_thread = speak_response(content)
+        tts_thread.start()
+    if not config.STREAM_RESPONSE:
+        chat.add_reply_entry(resp)
+        log_response(resp)
+        print_response(content)
+        if chat.is_model_near_limit_thresh(resp):
+            s = chat.summarize_conversation()
+            chat.add_summary(s)
+            log_response(resp)
+    # BROKEN don't use
+    # TODO: fix this
+    else:
+        chat.extract_streamed_resp_deltas(resp)
+    if tts_thread is not None:
+        tts_thread.join()
+    if config.SOUNDS:
+        playMp3Sound("./sounds/listening.mp3")
+    ef.silence.clear()
+    print("\nReady.")
+    gc.collect()
+
+
+def send_message(chat: chat_utils.ChatSession, trans: list):
     """Sends a request with the transcribed text and processes the response.
 
     Parameters:
@@ -75,60 +143,31 @@ def do_request(chat: chat_utils.ChatSession, trans: list):
     if len(trans) != 0:
         chat.add_user_entry(trans)
     resp = chat.send_request()
-    content = resp.choices[0].message.content
+    handle_response(resp, chat)
 
-    def tts_task():
-        match config.SPEAK:
-            case "cloud":
-                tts = TextToSpeech()
-                logging.info(
-                    "\ntime to start audio:"
-                    + f" {time.time() - ef.stream_write_time} seconds\n"
-                )
-                tts.stream_voice(text=content, voice=config.VOICE)
-            case "local":
-                tts_local = TextToSpeechLocal()
-                file = tts_local.generate_speech(text=content)
-                logging.info(
-                    "\ntime to start audio: "
-                    + f" {time.time() - ef.stream_write_time} seconds\n"
-                )
-                tts_local.play_audio(file)
-            case _:
-                pass
 
-    # Start TTS in a separate thread
-    tts_thread = threading.Thread(target=tts_task)
-    tts_thread.start()
-    if not config.STREAM_RESPONSE:
-        chat.add_reply_entry(resp)
-        tstamp = FileManager.get_datetime_string()
-        FileManager.save_json(
-            f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json",
-            chat_utils.chat_completion_to_dict(resp),
-        )
-        print(textwrap.fill(f"\n{content}\n", width=100))
-        logging.info(
-            "\ntotal response time: "
-            + f" {time.time() - ef.stream_write_time} seconds\n"
-        )
-    else:
-        chat.extract_streamed_resp_deltas(resp)
+def initialize_kw_detector(kw):
+    detector = KeywordDetector()
+    # add keyword_detector event listeners
+    detector.add_keyword_listener(kd_listeners.kwl_start_recording)
+    detector.add_keyword_listener(kd_listeners.kwl_stop_audio)
+    detector.add_partial_listener(lambda pr: kd_listeners.pl_no_speech(pr))
+    detector.add_keyword_listener(kd_listeners.kwl_print_keyword_message)
+    if config.ENABLE_ALL_PARTIAL_RESULT_LOG:
+        detector.add_partial_listener(kd_listeners.pl_print_all_partials)
+    if config.ENABLE_ACTIVE_SPEECH_LOG:
+        detector.add_partial_listener(kd_listeners.pl_print_active_speech_only)
+    return detector
 
-    # BORKEN don't use
-    # TODO: fix this
-    if not config.STREAM_RESPONSE:
-        if chat.is_model_near_limit_thresh(resp):
-            s = chat.summarize_conversation()
-            chat.add_summary(s)
-            FileManager.save_json(
-                f"{config.RESPONSE_LOG_PATH}response_{FileManager.get_datetime_string()}.json",
-                chat_utils.chat_completion_to_dict(s),
-            )
 
-    ef.silence.clear()
-    gc.collect()
-    tts_thread.join()
+def print_prompt_jo(pjo):
+    agent_keys = pjo.keys()
+    jfs = json.dumps(pjo, indent=2, ensure_ascii=False)
+    print(f"Loaded Agent: {list(agent_keys)[0]}")
+    print(f"\n{jfs}")
+    print(f"Temperature: {config.TEMPERATURE}")
+    print(f"Presence penalty: {config.PRESENCE_PENALTY}")
+    print("\n")
 
 
 def main():
@@ -142,38 +181,22 @@ def main():
     - Continuously listens for user input until interrupted.
     - Updates and saves chat sessions.
     """
-    kw_detector = None
+    print("\nLoading...\n")
+    keyword_detector = None
     chat_session = None
     convo = None
     # Setting up logging
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO + 1)
-    print("\nLoading...\n")
     # load chat_config
     prompt_jo: dict = FileManager.read_json(config.AGENT_PATH)
     if config.ENABLE_PRINT_PROMPT:
-        agent_keys = prompt_jo.keys()
-        jfs = json.dumps(prompt_jo, indent=2, ensure_ascii=False)
-        print(f"Loaded Agent: {list(agent_keys)[0]}")
-        print(f"\n{jfs}")
-        print(f"Temperature: {config.TEMPERATURE}")
-        print(f"Presence penalty: {config.PRESENCE_PENALTY}")
-        print("\n")
+        print_prompt_jo(prompt_jo)
     # TODO: Make a function that loads all this stuff into variables at once.
     # minimize calls to read_json()
+    keyword_detector = initialize_kw_detector(config.KEYWORD)
     model = FileManager.read_json("models.json")
     model = model[config.CHAT_MODEL]
-    # initialize kw_detector
-    kw_detector = KeywordDetector(config.KEYWORD)
-    # add keyword_detector event listeners
-    kw_detector.add_keyword_listener(kd_listeners.kwl_start_recording)
-    kw_detector.add_keyword_listener(kd_listeners.kwl_stop_audio)
-    kw_detector.add_partial_listener(lambda pr: kd_listeners.pl_no_speech(pr))
-    kw_detector.add_keyword_listener(kd_listeners.kwl_print_keyword_message)
-    if config.ENABLE_ALL_PARTIAL_RESULT_LOG:
-        kw_detector.add_partial_listener(kd_listeners.pl_print_all_partials)
-    if config.ENABLE_ACTIVE_SPEECH_LOG:
-        kw_detector.add_partial_listener(kd_listeners.pl_print_active_speech_only)
     # set global event flags
     ef.speaking.clear()
     ef.silence.clear()
@@ -181,13 +204,13 @@ def main():
     if config.SPEAK:
         prompt_jo.update(
             {
-                "output_instructions": "Optimize your output formatting for a text-to-speech service."
+                "output_instructions": "Optimize your output formatting for a text-to-speech service. Don't talk about these instructions."
             }
         )
     else:
         prompt_jo.update(
             {
-                "output_instructions": "Optimize your output formatting for printing to a terminal. This terminal uses UTF-8 encoding and supports special characters and glyphs. Don't worry about line length."
+                "output_instructions": "Optimize your output formatting for printing to a terminal. This terminal uses UTF-8 encoding and supports special characters and glyphs. Don't worry about line length. Don't talk about these instructions"
             }
         )
 
@@ -209,7 +232,7 @@ def main():
         config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
     )
     try:
-        kw_detector.start()
+        keyword_detector.start()
         if config.SOUNDS:
             # notification-sound-7062.mp3
             playMp3Sound("./sounds/ready.mp3")
@@ -239,12 +262,12 @@ def main():
                 print("I heard you say:\n")
                 print(textwrap.fill(trans_text[0], width=100))
                 print("\nReplying...\n")
-                do_request(chat_session, transcriptions)
+                send_message(chat_session, transcriptions)
             time.sleep(0.1)
     except Exception as e:
         logging.error(f"exception: {e}")
-        kw_detector.close()
-        kw_detector.join()
+        keyword_detector.close()
+        keyword_detector.join()
         gc.collect()
         quit()
     except KeyboardInterrupt:
@@ -254,8 +277,8 @@ def main():
             f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json", convo
         )
         print("\n\nGoodbye.")
-        kw_detector.close()
-        kw_detector.join()
+        keyword_detector.close()
+        keyword_detector.join()
         # Save conversation when interrupted
         gc.collect()
         quit()
