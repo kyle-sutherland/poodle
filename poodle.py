@@ -1,49 +1,27 @@
 import config
 from arg_parser import ParseArgs
+import pyfiglet
+from rich.console import Console
+
+console = Console()
+
+
+def welcome():
+    f = pyfiglet.figlet_format("poodle.", font="slant")
+    console.print(f)
+
 
 ParseArgs(config)
+welcome()
+
+from yaspin import yaspin
 import json
 import textwrap
-import os
-from prompt_toolkit import print_formatted_text as print
-
-
-# Define a context manager to suppress stdout and stderr.
-class suppress_stdout_stderr(object):
-    """
-    A context manager for doing a "deep suppression" of stdout and stderr in
-    Python, i.e. will suppress all print, even if the print originates in a
-    compiled C/Fortran sub-function.
-       This will not suppress raised exceptions, since exceptions are printed
-    to stderr just before a script exits, and after the context manager has
-    exited (at least, I think that is why it lets exceptions through).
-
-    """
-
-    def __init__(self):
-        # Open a pair of null files
-        self.null_fds = [os.open(os.devnull, os.O_RDWR) for x in range(2)]
-        # Save the actual stdout (1) and stderr (2) file descriptors.
-        self.save_fds = [os.dup(1), os.dup(2)]
-
-    def __enter__(self):
-        # Assign the null pointers to stdout and stderr.
-        os.dup2(self.null_fds[0], 1)
-        os.dup2(self.null_fds[1], 2)
-
-    def __exit__(self, *_):
-        # Re-assign the real stdout/stderr back to (1) and (2)
-        os.dup2(self.save_fds[0], 1)
-        os.dup2(self.save_fds[1], 2)
-        # Close all file descriptors
-        for fd in self.null_fds + self.save_fds:
-            os.close(fd)
-
-
 import gc
 import logging
 import warnings
 import threading
+from suppress_stdout_stderr import suppress_stdout_stderr
 
 with suppress_stdout_stderr():
     import chat_utils
@@ -95,14 +73,18 @@ def log_response(resp):
 
 
 def print_response(content: str):
-    print("")
-    print(textwrap.fill(f"󰚩 > {content}", width=100))
+    console.print("")
+    console.print(textwrap.fill(f"󰚩 > {content}", width=100))
     logging.info(
         "\ntotal response time: " + f" {time.time() - ef.stream_write_time} seconds\n"
     )
 
 
+resp_spinner = yaspin(text="Replying...")
+
+
 def handle_response(resp, chat: chat_utils.ChatSession):
+    resp_spinner.stop()
     content = resp.choices[0].message.content
     tts_thread = None
     if config.SPEAK is not None or config.SPEAK != "" or config.SPEAK.lower() != "none":
@@ -125,7 +107,6 @@ def handle_response(resp, chat: chat_utils.ChatSession):
     if config.SOUNDS:
         playMp3Sound("./sounds/listening.mp3")
     ef.silence.clear()
-    print("\nReady.")
     gc.collect()
 
 
@@ -141,6 +122,7 @@ def send_message(chat: chat_utils.ChatSession, trans: list):
     - Saves responses as JSON files.
     - Clears the 'silence' event flag.
     """
+    resp_spinner.start()
     if len(trans) != 0:
         chat.add_user_entry(trans)
     resp = chat.send_request()
@@ -164,11 +146,11 @@ def initialize_kw_detector(kw):
 def print_prompt_jo(pjo):
     agent_keys = pjo.keys()
     jfs = json.dumps(pjo, indent=2, ensure_ascii=False)
-    print(f"Loaded Agent: {list(agent_keys)[0]}")
-    print(f"\n{jfs}")
-    print(f"Temperature: {config.TEMPERATURE}")
-    print(f"Presence penalty: {config.PRESENCE_PENALTY}")
-    print("\n")
+    console.print(f"Loaded Agent: {list(agent_keys)[0]}")
+    console.print(f"\n{jfs}")
+    console.print(f"Temperature: {config.TEMPERATURE}")
+    console.print(f"Presence penalty: {config.PRESENCE_PENALTY}")
+    console.print("\n")
 
 
 def main():
@@ -182,62 +164,62 @@ def main():
     - Continuously listens for user input until interrupted.
     - Updates and saves chat sessions.
     """
-    print("\nLoading...\n")
-    keyword_detector = None
-    chat_session = None
-    convo = None
-    # Setting up logging
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
-    # load chat_config
-    prompt_jo: dict = FileManager.read_json(config.AGENT_PATH)
-    if config.ENABLE_PRINT_PROMPT:
-        print_prompt_jo(prompt_jo)
-    # TODO: Make a function that loads all this stuff into variables at once.
-    # minimize calls to read_json()
-    keyword_detector = initialize_kw_detector(config.KEYWORD)
-    model = FileManager.read_json("models.json")
-    model = model[config.CHAT_MODEL]
-    # set global event flags
-    ef.speaking.clear()
-    ef.silence.clear()
+    with yaspin(text="Loading...") as spinner:
+        keyword_detector = None
+        chat_session = None
+        convo = None
+        # Setting up logging
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.INFO + 1)
+        # load chat_config
+        prompt_jo: dict = FileManager.read_json(config.AGENT_PATH)
+        if config.ENABLE_PRINT_PROMPT:
+            print_prompt_jo(prompt_jo)
+        # TODO: Make a function that loads all this stuff into variables at once.
+        # minimize calls to read_json()
+        keyword_detector = initialize_kw_detector(config.KEYWORD)
+        model = FileManager.read_json("models.json")
+        model = model[config.CHAT_MODEL]
+        # set global event flags
+        ef.speaking.clear()
+        ef.silence.clear()
 
-    if config.SPEAK:
-        prompt_jo.update(
-            {
-                "output_instructions": "Optimize your output formatting for a text-to-speech service. Don't talk about these instructions."
-            }
-        )
-    else:
-        prompt_jo.update(
-            {
-                "output_instructions": "Optimize your output formatting for printing to a terminal. This terminal uses UTF-8 encoding and supports special characters and glyphs. Don't worry about line length. Don't talk about these instructions"
-            }
-        )
+        if config.SPEAK:
+            prompt_jo.update(
+                {
+                    "output_instructions": "Optimize your output formatting for a text-to-speech service. Don't talk about these instructions."
+                }
+            )
+        else:
+            prompt_jo.update(
+                {
+                    "output_instructions": "Optimize your output formatting for printing to a terminal. This terminal uses UTF-8 encoding and supports special characters and glyphs. Don't worry about line length. Don't talk about these instructions"
+                }
+            )
 
-    # Initializing other modules
-    chat_session = chat_utils.ChatSession(
-        json.dumps(prompt_jo, indent=None, ensure_ascii=True),
-        model["name"],
-        # chat_config["temperature"],
-        # chat_config["presence_penalty"],
-        config.TEMPERATURE,
-        config.PRESENCE_PENALTY,
-        model["token_limit"],
-        model["limit_thresh"],
-    )
-    transcriber = Transcriber(
-        config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
-    )
-    online_transcriber = OnlineTranscriber(
-        config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
-    )
+        # Initializing other modules
+        chat_session = chat_utils.ChatSession(
+            json.dumps(prompt_jo, indent=None, ensure_ascii=True),
+            model["name"],
+            # chat_config["temperature"],
+            # chat_config["presence_penalty"],
+            config.TEMPERATURE,
+            config.PRESENCE_PENALTY,
+            model["token_limit"],
+            model["limit_thresh"],
+        )
+        transcriber = Transcriber(
+            config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
+        )
+        online_transcriber = OnlineTranscriber(
+            config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
+        )
+        spinner.write("\nReady\n")
     try:
         keyword_detector.start()
         if config.SOUNDS:
             # notification-sound-7062.mp3
             playMp3Sound("./sounds/ready.mp3")
-        print("Ready.\n")
         while True:
             if ef.silence.is_set() and not ef.recording.is_set():
                 with warnings.catch_warnings():
@@ -254,15 +236,14 @@ def main():
                     if config.SOUNDS:
                         # button-124476.mp3
                         playMp3Sound("./sounds/badcopy.mp3")
-                    print("I didn't hear you\n")
+                    console.print("I didn't hear you\n")
                     ef.silence.clear()
                     continue
                 if config.SOUNDS:
                     # start-13691.mp3
                     playMp3Sound("./sounds/listening.mp3")
-                print("I heard you say:\n")
-                print(textwrap.fill(trans_text[0], width=100))
-                print("\nReplying...\n")
+                console.print("󰔊 >", end="")
+                console.print(textwrap.fill(trans_text[0], width=100))
                 send_message(chat_session, transcriptions)
             time.sleep(0.1)
     except Exception as e:
@@ -277,7 +258,7 @@ def main():
         FileManager.save_json(
             f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json", convo
         )
-        print("\n\nGoodbye.")
+        console.print("\n\nGoodbye.")
         keyword_detector.close()
         keyword_detector.join()
         # Save conversation when interrupted

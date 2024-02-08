@@ -2,8 +2,10 @@ import argparse
 import json
 from file_manager import FileManager
 import whisper
-from prompt_toolkit import print_formatted_text as print
+from rich.console import Console
+from tabulate import tabulate
 
+console = Console()
 parser = argparse.ArgumentParser(
     description="Poodle. Talk to chatgpt with your command line.",
     prog="Poodle",
@@ -129,13 +131,15 @@ def get_sorted_chat_models_names(models) -> dict:
 def ParseArgs(config):
     args = parser.parse_args()
     if help is args:
-        print(args.help)
+        console.print(args.help)
 
     if args.agent is not None:
         config.AGENT_PATH = args.agent[0]
 
     if args.stream is True and args.stream is True:
-        print("option '--stream' cannot be used with option '--speak'. Continuing.\n\n")
+        console.print(
+            "option '--stream' cannot be used with option '--speak'. Continuing.\n\n"
+        )
 
     if args.keyword is not None:
         config.KEYWORD = args.keyword[0]
@@ -144,18 +148,14 @@ def ParseArgs(config):
         models = FileManager.read_json("./models.json")
         sorted_models = get_sorted_chat_models_names(models)
         if args.model[0] == "help":
-            print("\navailable models:\ngpt-3.5:")
-            for model in sorted_models["gpt-3.5"]:
-                print(f"\t{model}")
-            print("gpt-4:")
-            for model in sorted_models["gpt-4"]:
-                print(f"\t{model}")
+            console.print("\navailable models:\n")
+            console.print(tabulate(sorted_models))
             quit()
         elif args.model[0] in models:
             config.CHAT_MODEL = args.model[0]
-            print(f"\nmodel selected: {config.CHAT_MODEL}\n")
+            console.print(f"\nmodel selected: {config.CHAT_MODEL}\n")
         else:
-            print(f"{args.model[0]} is not a valid chatgpt model")
+            console.print(f"{args.model[0]} is not a valid chatgpt model")
             quit()
 
     if args.showprompt:
@@ -164,23 +164,23 @@ def ParseArgs(config):
     if args.language is not None:
         langs = FileManager.read_json("./vosk_langs.json")
         if args.language[0] == "help":
-            print("\navailable vosk (keyword detector) languages:")
+            console.print("\navailable vosk (keyword detector) languages:")
             for lang in langs:
-                print(f"\t{lang}")
+                console.print(f"\t{lang}")
             quit()
         elif args.language[0] in langs:
             config.VOSK_LANGUAGE = args.language[0]
-            print(
+            console.print(
                 f"\nvosk (keyword detector) language selected: {config.VOSK_LANGUAGE}\n\n"
             )
         else:
-            print(f"{args.language[0]} is not a valid vosk language")
+            console.print(f"{args.language[0]} is not a valid vosk language")
             quit()
 
     if args.model_info is not None:
         models = FileManager.read_json("./models.json")
         if args.model_info[0] in models:
-            print(json.dumps(models[args.model_info[0]], indent=4))
+            console.print(json.dumps(models[args.model_info[0]], indent=4))
         quit()
 
     if args.sounds:
@@ -196,41 +196,44 @@ def ParseArgs(config):
             for opt in opts:
                 match opt:
                     case "help":
-                        print(
+                        console.print(
                             " [...opts,], [VOICE] Leave blank to use cloud tts and whatever voice is selected in your config options:\n\tlocal: use local transcription.\n\tcloud: use openai cloud transcription.\n\nvoices: print list of available voices\n\tlanguages: print list of languages supported by cloud\n\nvoices: print list of available voices for cloud\n\nVOICE: select a voice to use."
                         )
+                        quit()
                     case "languages":
-                        print("\nlanguages supported by openai cloud TTS:\n")
+                        console.print("\nlanguages supported by openai cloud TTS:\n")
                         for lang in whisper_info["languages"]:
-                            print(f"\t{lang}")
-                        print("\n", end="")
+                            console.print(f"\t{lang}")
+                        console.print("\n", end="")
+                        quit()
                     case "voices":
-                        print("\nvoices available for openai cloud TTS:\n")
+                        console.print("\nvoices available for openai cloud TTS:\n")
                         for voice in whisper_info["voices"]:
-                            print(f"\t{voice}")
-                        print("\n", end="")
+                            console.print(f"\t{voice}")
+                        console.print("\n", end="")
+                        quit()
                     case "cloud":
                         config.SPEAK = opt
                     case "local":
                         config.SPEAK = opt
                     case _:
                         config.SPEAK = "cloud"
-            print(f"using {config.SPEAK} tts")
+            console.print(f"using {config.SPEAK} tts")
             if args.speak[-1] is not None and config.SPEAK.lower() != "local":
                 voice = args.speak[-1]
                 if args.speak[-1] in whisper_info["voices"]:
                     config.VOICE = voice
-                    print(f"Voice: {config.VOICE} selected.\n")
+                    console.print(f"Voice: {config.VOICE} selected.\n")
                 else:
-                    print(f"voice not found. Using config: {config.VOICE}\n")
+                    console.print(f"voice not found. Using config: {config.VOICE}\n")
 
     if args.transcription is not None:
         if args.transcription[0] == "help":
-            print(
+            console.print(
                 "\navailable whisper models (models will be downloaded automatically):"
             )
             for model in whisper.available_models():
-                print(f"\t{model}")
+                console.print(f"\t{model}")
             quit()
         else:
             config.LOCAL_TRANCSCIBER_MODEL = args.transcription[0]
@@ -239,7 +242,7 @@ def ParseArgs(config):
         if args.temp[0] >= 0.0 and args.temp[0] <= 2.0:
             config.TEMPERATURE = args.temp[0]
         else:
-            print(
+            console.print(
                 f"Temperature must be between 0.0 and 2.0. Continuing with default. {config.TEMPERATURE}"
             )
 
@@ -247,6 +250,6 @@ def ParseArgs(config):
         if args.presence_penalty[0] >= 0.0 and args.presence_penalty[0] <= 2.0:
             config.PRESENCE_PENALTY = args.presence_penalty[0]
         else:
-            print(
+            console.print(
                 f"Temperature must be between 0.0 and 2.0. Continuing with default {config.PRESENCE_PENALTY}."
             )
