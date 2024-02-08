@@ -92,6 +92,12 @@ class KeywordDetector(threading.Thread):
         for listener in self.partial_listeners:
             self.executor.submit(listener, data)
 
+    def toggle_detector(self):
+        if self.running.isSet():
+            self.running.clear()
+        else:
+            self.running.set()
+
     def close(self):
         self.running.clear()
         self.fetcher.stop()  # use the stop method of AudioFetcher

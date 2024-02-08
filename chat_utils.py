@@ -2,6 +2,7 @@
 import ast
 import logging
 from time import sleep
+from prompt_toolkit import print_formatted_text as print
 
 import openai
 from openai.types.chat import ChatCompletion, chat_completion_chunk
@@ -80,12 +81,12 @@ class ChatSession:
 
     def __init__(
         self,
-        initial_prompt: str = None,
-        model: str = None,
-        temperature: float = None,
-        presence_penalty: float = None,
-        token_limit: int = None,
-        limit_thresh: float = None,
+        initial_prompt,
+        model: str,
+        temperature: float,
+        presence_penalty: float,
+        token_limit: int,
+        limit_thresh: float,
     ):
         self.ai = openai
         self.ai.api_key = FileManager.read_file("api_keys/keys")

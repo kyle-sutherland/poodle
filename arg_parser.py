@@ -2,6 +2,7 @@ import argparse
 import json
 from file_manager import FileManager
 import whisper
+from prompt_toolkit import print_formatted_text as print
 
 parser = argparse.ArgumentParser(
     description="Poodle. Talk to chatgpt with your command line.",

@@ -5,6 +5,7 @@ ParseArgs(config)
 import json
 import textwrap
 import os
+from prompt_toolkit import print_formatted_text as print
 
 
 # Define a context manager to suppress stdout and stderr.
@@ -147,7 +148,7 @@ def send_message(chat: chat_utils.ChatSession, trans: list):
 
 
 def initialize_kw_detector(kw):
-    detector = KeywordDetector()
+    detector = KeywordDetector(kw)
     # add keyword_detector event listeners
     detector.add_keyword_listener(kd_listeners.kwl_start_recording)
     detector.add_keyword_listener(kd_listeners.kwl_stop_audio)
@@ -187,7 +188,7 @@ def main():
     convo = None
     # Setting up logging
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO + 1)
+    root_logger.setLevel(logging.INFO)
     # load chat_config
     prompt_jo: dict = FileManager.read_json(config.AGENT_PATH)
     if config.ENABLE_PRINT_PROMPT:
