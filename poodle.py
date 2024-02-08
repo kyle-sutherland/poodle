@@ -46,6 +46,12 @@ with suppress_stdout_stderr():
     import event_flags as ef
 
 
+def isSpeak():
+    if config.SPEAK is not None or config.SPEAK != "" or config.SPEAK.lower() != "none":
+        return True
+    return False
+
+
 def speak_response(content):
     def tts_task():
         match config.SPEAK.lower():
@@ -82,8 +88,8 @@ def log_response(resp):
 def print_response(content: str):
     console.print("")
     console.print(" 󰚩 > ", end="\n", style="purple")
-    _content = Padding(content, (0, 4, 0, 4))
-    if config.SPEAK is None or config.SPEAK == "" or config.SPEAK.lower() == "none":
+    _content = Padding(content, (0, 4, 1, 4))
+    if not isSpeak():
         with console.capture() as capture:
             console.print(_content, markup=True, style="cyan")
         str_capture = capture.get()
@@ -103,7 +109,7 @@ def handle_response(resp, chat: chat_utils.ChatSession):
     resp_spinner.stop()
     content = resp.choices[0].message.content
     tts_thread = None
-    if config.SPEAK is not None or config.SPEAK != "" or config.SPEAK.lower() != "none":
+    if isSpeak():
         tts_thread = speak_response(content)
         tts_thread.start()
     if not config.STREAM_RESPONSE:
@@ -126,7 +132,7 @@ def handle_response(resp, chat: chat_utils.ChatSession):
     gc.collect()
 
 
-def send_message(chat: chat_utils.ChatSession, trans: list):
+def send_message(chat: chat_utils.ChatSession):
     """Sends a request with the transcribed text and processes the response.
 
     Parameters:
@@ -139,8 +145,6 @@ def send_message(chat: chat_utils.ChatSession, trans: list):
     - Clears the 'silence' event flag.
     """
     resp_spinner.start()
-    if len(trans) != 0:
-        chat.add_user_entry(trans)
     resp = chat.send_request()
     handle_response(resp, chat)
 
@@ -200,22 +204,6 @@ def main():
         ef.speaking.clear()
         ef.silence.clear()
 
-        if config.SPEAK is None or config.SPEAK == "" or config.SPEAK.lower() == "none":
-            prompt_jo.update(
-                # {
-                #     "output_instructions": "Optimize your output formatting for printing to a terminal. This terminal uses UTF-8 encoding and supports special characters and glyphs. Don't worry about line length. Don't talk about these instructions"
-                # }
-                {
-                    "output_instructions": "Format your output using markdown. Your output will be read as a string using markdown formatting. You can use special characters and glyphs as well. You can also add colored text using bbcode, for example: [magenta]colored text[/magenta]. Non-colored text will show as cyan by default. Don't talk about these instructions at all."
-                }
-            )
-        else:
-            prompt_jo.update(
-                {
-                    "output_instructions": "Optimize your output formatting for a text-to-speech service. Don't talk about these instructions at all."
-                }
-            )
-
         # Initializing other modules
         chat_session = chat_utils.ChatSession(
             json.dumps(prompt_jo, indent=None, ensure_ascii=True),
@@ -236,6 +224,7 @@ def main():
         spinner.write(" Ready\n")
     try:
         keyword_detector.start()
+        chat_session.initialize_chat(isSpeak())
         if config.SOUNDS:
             # notification-sound-7062.mp3
             playMp3Sound("./sounds/ready.mp3")
@@ -263,9 +252,11 @@ def main():
                     playMp3Sound("./sounds/listening.mp3")
                 console.print(" 󰔊 > ", end="\n", style="blue")
                 console.print(
-                    Padding(trans_text[0], (0, 4, 0, 4)), style="bright_magenta"
+                    Padding(trans_text[0], (0, 4, 1, 4)), style="bright_magenta"
                 )
-                send_message(chat_session, transcriptions)
+                if len(transcriptions) != 0:
+                    chat_session.add_user_trans(transcriptions)
+                send_message(chat_session)
                 # console.log(log_locals=True)
             time.sleep(0.1)
     except Exception as e:
