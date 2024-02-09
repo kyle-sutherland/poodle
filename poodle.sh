@@ -1,2 +1,3 @@
 #!/bin/bash
-python ./poodle.py
+# Activate the 'poodle' Conda environment and launch the Poodle application
+conda activate poodle && python poodle.py
