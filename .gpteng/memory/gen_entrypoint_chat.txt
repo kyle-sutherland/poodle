@@ -1,0 +1,9 @@
+```bash
+# Install dependencies
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Run the necessary parts of the codebase
+python poodle.py &
+```
