@@ -4,6 +4,9 @@ import pyfiglet
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.padding import Padding
+from app import Poodle
+from yaspin import yaspin
+
 
 console = Console()
 
@@ -22,7 +25,6 @@ def welcome():
 welcome()
 ParseArgs(config)
 
-from yaspin import yaspin
 import json
 import gc
 import logging
@@ -31,7 +33,6 @@ import threading
 from suppress_stdout_stderr import suppress_stdout_stderr
 
 with suppress_stdout_stderr():
-    import chat_utils
     import kd_listeners
     from audio_utils import (
         KeywordDetector,
@@ -77,7 +78,7 @@ def speak_response(content):
     return threading.Thread(target=tts_task)
 
 
-def log_response(resp):
+def log_response(resp, chat_utils):
     tstamp = FileManager.get_datetime_string()
     FileManager.save_json(
         f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json",
@@ -105,7 +106,7 @@ def print_response(content: str):
 resp_spinner = yaspin(text="Replying...", color="cyan")
 
 
-def handle_response(resp, chat: chat_utils.ChatSession):
+def handle_response(resp, chat):
     resp_spinner.stop()
     content = resp.choices[0].message.content
     tts_thread = None
@@ -114,12 +115,10 @@ def handle_response(resp, chat: chat_utils.ChatSession):
         tts_thread.start()
     if not config.STREAM_RESPONSE:
         chat.add_reply_entry(resp)
-        log_response(resp)
         print_response(content)
         if chat.is_model_near_limit_thresh(resp):
             s = chat.summarize_conversation()
             chat.add_summary(s)
-            log_response(resp)
     # BROKEN don't use
     # TODO: fix this
     else:
@@ -132,18 +131,7 @@ def handle_response(resp, chat: chat_utils.ChatSession):
     gc.collect()
 
 
-def send_message(chat: chat_utils.ChatSession):
-    """Sends a request with the transcribed text and processes the response.
-
-    Parameters:
-    - chat (chat_utils.ChatSession): The current chat session.
-    - trans (str): The transcribed text to send.
-
-    Side Effects:
-    - Updates the chat session with user entries and replies.
-    - Saves responses as JSON files.
-    - Clears the 'silence' event flag.
-    """
+def send_message(chat):
     resp_spinner.start()
     resp = chat.send_request()
     handle_response(resp, chat)
@@ -173,21 +161,16 @@ def print_prompt_jo(pjo):
     console.print("\n")
 
 
+def load_transcriber(online: bool):
+    if online:
+        return OnlineTranscriber(
+            config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
+        )
+    return Transcriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
+
+
 def main():
-    """
-    Main function to start the application.
-
-    Sets up logging, initializes modules, and enters a loop to listen for user input.
-    Transcribes the user input and sends it to get a response.
-
-    Side Effects:
-    - Continuously listens for user input until interrupted.
-    - Updates and saves chat sessions.
-    """
     with yaspin(text="Loading...", color="magenta") as spinner:
-        keyword_detector = None
-        chat_session = None
-        convo = None
         # Setting up logging
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.INFO + 1)
@@ -198,33 +181,17 @@ def main():
         # TODO: Make a function that loads all this stuff into variables at once.
         # minimize calls to read_json()
         keyword_detector = initialize_kw_detector(config.KEYWORD)
-        model = FileManager.read_json("models.json")
-        model = model[config.CHAT_MODEL]
         # set global event flags
+        poodle = Poodle(config)
+        poodle.run()
         ef.speaking.clear()
         ef.silence.clear()
-
-        # Initializing other modules
-        chat_session = chat_utils.ChatSession(
-            json.dumps(prompt_jo, indent=None, ensure_ascii=True),
-            model["name"],
-            # chat_config["temperature"],
-            # chat_config["presence_penalty"],
-            config.TEMPERATURE,
-            config.PRESENCE_PENALTY,
-            model["token_limit"],
-            model["limit_thresh"],
-        )
-        transcriber = Transcriber(
-            config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
-        )
-        online_transcriber = OnlineTranscriber(
-            config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
-        )
+        chat_session = poodle.chat_session
+        chat_utils = poodle.chat_utils
         spinner.write(" Ready\n")
     try:
         keyword_detector.start()
-        chat_session.initialize_chat(isSpeak())
+        transcriber = load_transcriber(config.ONLINE_TRANSCRIBE)
         if config.SOUNDS:
             # notification-sound-7062.mp3
             playMp3Sound("./sounds/ready.mp3")
@@ -232,10 +199,7 @@ def main():
             if ef.silence.is_set() and not ef.recording.is_set():
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    if config.ONLINE_TRANSCRIBE:
-                        online_transcriber.online_transcribe_bodies()
-                    else:
-                        transcriber.transcribe_bodies()
+                    transcriber.transcribe_bodies()
                 transcriptions = FileManager.read_transcriptions(
                     config.TRANSCRIPTION_PATH
                 )

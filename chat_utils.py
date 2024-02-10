@@ -4,13 +4,12 @@ import logging
 from time import sleep
 from rich.console import Console
 from rich import print
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 console = Console()
 
 import openai
 from openai.types.chat import ChatCompletion, chat_completion_chunk
-import config
 from file_manager import FileManager
 
 
@@ -103,6 +102,7 @@ class ChatSession:
         presence_penalty: float,
         token_limit: int,
         limit_thresh: float,
+        stream: bool,
     ):
         self.ai = openai
         self.ai.api_key = FileManager.read_file("api_keys/keys")
@@ -110,7 +110,7 @@ class ChatSession:
         self.model = model
         if model is None:
             self.model = "gpt-3.5-1106"
-        self.transcription_directory = config.TRANSCRIPTION_PATH
+        self.transcription_directory = "./body_transcriptions/"
         self.initial_prompt = initial_prompt
         if initial_prompt is None:
             self.initial_prompt = "You are a helpful assistant"
@@ -128,6 +128,7 @@ class ChatSession:
         self.limit_thresh = limit_thresh
         if limit_thresh is None:
             self.limit_thresh = 0.4
+        self.stream = stream
 
     def initialize_chat(self, isSpeak: bool):
         self.add_system_message(self.initial_prompt)
@@ -195,7 +196,7 @@ class ChatSession:
         self.add_assistant_message(full_reply_content)
         tstamp = FileManager.get_datetime_string()
         FileManager.save_json(
-            f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json", collected_chunks
+            f"./response_log/response_{tstamp}.json", collected_chunks
         )
 
     def send_request(self):
@@ -204,7 +205,7 @@ class ChatSession:
                 model=self.model,
                 messages=self.messages.get_messages(),
                 temperature=self.temperature,
-                stream=config.STREAM_RESPONSE,
+                stream=self.stream,
             )
             return chat_completion
 

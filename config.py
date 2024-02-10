@@ -1,5 +1,3 @@
-# config.py
-
 # Determines whether to dump the keyword block or not
 ENABLE_DUMP_KEYWORD_BLOCK: bool = False
 
@@ -22,17 +20,14 @@ ONLINE_TRANSCRIBE = False  # Use online transcription service
 LOCAL_TRANSCRIBER_MODEL = "base"  # available models given by whisper.available_models()
 
 # Determines whether the response should be streamed or not
-STREAM_RESPONSE = False
 # text-to-speech valid options: LOCAL, cloud, NONE
+STREAM_RESPONSE = False
 SPEAK = "NONE"
 VOICE = "shimmer"
 AGENT_PATH = "agents/standard.json"
-
 CHAT_MODEL = "gpt-4-1106-preview"
 PRESENCE_PENALTY = 1.0
 TEMPERATURE = 1.0
 SOUNDS = True
-
 KEYWORD = "computer"
-
 LANG = "english-us"
