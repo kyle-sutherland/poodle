@@ -1,4 +1,4 @@
-# chat_manager.py
+# chat_utils.py
 import ast
 import logging
 from time import sleep

@@ -1,3 +1,4 @@
+# app.py
 import json
 import logging
 from suppress_stdout_stderr import suppress_stdout_stderr
@@ -16,6 +17,7 @@ class Poodle:
         self.convo = None
         self.chat_utils = chat_utils
         self.prompt_jo: dict = FileManager.read_json(self.config.AGENT_PATH)
+        self.chat_session
 
     def isSpeak(self):
         if (
@@ -25,6 +27,9 @@ class Poodle:
         ):
             return True
         return False
+
+    def get_session(self):
+        return self.chat_session
 
     def run(self):
         # The main logic of the application will be moved here.

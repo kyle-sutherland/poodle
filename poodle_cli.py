@@ -1,3 +1,4 @@
+# poodle_cli.py
 import config
 from arg_parser import ParseArgs
 import pyfiglet
@@ -175,8 +176,8 @@ def main():
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.INFO + 1)
         # load chat_config
-        prompt_jo: dict = FileManager.read_json(config.AGENT_PATH)
         if config.ENABLE_PRINT_PROMPT:
+            prompt_jo: dict = FileManager.read_json(config.AGENT_PATH)
             print_prompt_jo(prompt_jo)
         # TODO: Make a function that loads all this stuff into variables at once.
         # minimize calls to read_json()

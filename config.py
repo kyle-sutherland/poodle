@@ -1,3 +1,4 @@
+# cofig.py
 # Determines whether to dump the keyword block or not
 ENABLE_DUMP_KEYWORD_BLOCK: bool = False
 
