@@ -52,7 +52,7 @@ class Hello(Static):
         f = pyfiglet.figlet_format("poodle.", font="slant")
         with console.capture() as w:
             console.print(
-                f"{f}[bright_magenta]Voice interface GPT in your terminal.[/bright_magenta]"
+                f"{f}[bright_magenta]Voice interface GPT in your terminal.[/bright_magenta]\nGPLv3 version0.08"
             )
         return w.get()
 
@@ -86,7 +86,7 @@ class PoodleTui(App):
     def welcome(self):
         f = pyfiglet.figlet_format("poodle.", font="slant")
         w = str(
-            f"{f}[bright_magenta]Voice interface GPT in your terminal.[/bright_magenta]"
+            f"{f}[bright_magenta]Voice interface GPT in your terminal.[/bright_magenta]\n                                v0.08"
         )
         return w
 
