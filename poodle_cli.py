@@ -1,7 +1,7 @@
 #!/home/kyle/miniconda3/envs/poodle/bin/python
 # poodle_cli.py
 import config
-from arg_parser import ParseArgs
+from cli.arg_parser import ParseArgs
 import pyfiglet
 from rich.console import Console
 from rich.markdown import Markdown
