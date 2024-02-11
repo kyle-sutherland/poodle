@@ -61,7 +61,10 @@ class Hello(Static):
 
 
 class TextInput(Input):
-    BINDINGS = [("ctrl+m", "submit", "submit")]
+    BINDINGS = [("escape", "close", "close")]
+
+    def action_close(self):
+        self.remove()
 
 
 class PoodleTui(App):
@@ -72,7 +75,8 @@ class PoodleTui(App):
         ("ctrl+s", "send", f"send to {config.KEYWORD}"),
         ("s", "input_speech, print_keyword_message", f"input speech"),
         ("i", "input_text", "input text"),
-        ("v", "toggle_voice", f"toggle voice"),
+        ("v", "toggle_voice", "toggle voice"),
+        ("u", "input_file", "upload file"),
     ]
 
     auto_send = Reactive(False)
@@ -151,9 +155,13 @@ class PoodleTui(App):
             tts_thread.join()
 
     @work
-    async def send_message(self, chat):
-        resp = await chat.send_request()
+    async def send_messages(self, chat):
+        resp = await chat.send_chat_request()
         self.handle_response(resp, chat)
+
+    @work
+    async def add_chat_file(self, chat, file_dir):
+        await chat.add_chat_file(file_dir)
 
     async def loop_transcription(self) -> None:
         if ef.silence.is_set() and not ef.recording.is_set():
@@ -192,12 +200,24 @@ class PoodleTui(App):
 
     @on(Input.Submitted, "#text_input")
     def add_text_input(self):
-        input = self.query_one("#text_input", Input)
-        input.remove()
+        input = self.query_one("#text_input", TextInput)
         text = input.value
         self.chat_session.add_user_text(text)
         self.main_log.write("[blue] 󰯓 > [/blue]")
         self.main_log.write(text)
+
+    @on(Input.Submitted, "#file_input")
+    def add_file_input(self):
+        input = self.query_one("#file_input", TextInput)
+        file_dir = input.value
+        self.add_chat_file(self.chat_session, file_dir)
+        self.main_log.write("[blue] 󰛶 > [/blue]")
+        self.main_log.write(file_dir)
+
+    def action_input_file(self):
+        new_input = TextInput(id="file_input")
+        self.app.mount(new_input)
+        new_input.focus()
 
     def action_input_text(self):
         new_input = TextInput(id="text_input")
@@ -209,7 +229,7 @@ class PoodleTui(App):
 
     def action_send(self) -> None:
         self.main_log.write("send it")
-        self.send_message(self.chat_session)
+        self.send_messages(self.chat_session)
 
     async def action_toggle_kw_detection(self):
         if self.poodle_vui.keyword_detection_active:

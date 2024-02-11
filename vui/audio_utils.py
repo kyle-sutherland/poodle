@@ -25,7 +25,7 @@ from transformers import pipeline
 import config
 import event_flags as ef
 import whisper
-from file_manager import FileManager
+from core.file_manager import FileManager
 import soundfile
 
 

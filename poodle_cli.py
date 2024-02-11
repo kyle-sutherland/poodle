@@ -133,9 +133,9 @@ def handle_response(resp, chat):
     gc.collect()
 
 
-def send_message(chat):
+def send_messages(chat):
     resp_spinner.start()
-    resp = chat.send_request()
+    resp = chat.send_chat_request()
     handle_response(resp, chat)
 
 
@@ -222,7 +222,7 @@ def main():
                 )
                 if len(transcriptions) != 0:
                     chat_session.add_user_trans(transcriptions)
-                send_message(chat_session)
+                send_messages(chat_session)
                 # console.log(log_locals=True)
             time.sleep(0.1)
     except Exception as e:
