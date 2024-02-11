@@ -7,6 +7,7 @@ from rich import print
 from dataclasses import dataclass
 import event_flags as ef
 import gc
+import config
 
 console = Console()
 

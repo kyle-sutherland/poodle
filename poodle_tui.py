@@ -12,16 +12,16 @@ import pyfiglet
 from rich.console import Console
 from rich.markdown import Markdown
 import config
-from app import Poodle
+from core.core import Poodle
 
 
-from audio_utils import (
+from vui.audio_utils import (
     playMp3Sound,
 )
-from file_manager import FileManager
+from core.file_manager import FileManager
 import event_flags as ef
 
-from vui import Vui
+from vui.vui import Vui
 
 console = Console()
 

@@ -35,7 +35,7 @@ import threading
 from suppress_stdout_stderr import suppress_stdout_stderr
 
 with suppress_stdout_stderr():
-    import cli.kd_listeners as kd_listeners
+    import kd_listeners
     from vui.audio_utils import (
         KeywordDetector,
         Transcriber,
