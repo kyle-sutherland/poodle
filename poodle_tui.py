@@ -1,4 +1,3 @@
-#!/home/kyle/miniconda3/envs/poodle/bin/python
 # poodle_tui.py
 from textual.app import App, ComposeResult, RenderResult
 from textual.widget import Widget
@@ -13,8 +12,6 @@ from rich.console import Console
 from rich.markdown import Markdown
 import config
 from core.core import Poodle
-
-
 from vui.audio_utils import (
     playMp3Sound,
 )
@@ -67,6 +64,10 @@ class TextInput(Input):
         self.remove()
 
 
+class ChatDisplayIO(Static):
+    pass
+
+
 class PoodleTui(App):
 
     BINDINGS = [
@@ -78,6 +79,32 @@ class PoodleTui(App):
         ("v", "toggle_voice", "toggle voice"),
         ("u", "input_file", "upload file"),
     ]
+
+    async def on_load(self):
+        self.poodle = Poodle(config)
+        self.poodle.run()
+        self.chat_session = self.poodle.get_session()
+        self.kw_listeners = [
+            self.action_input_speech,
+            self.action_print_keyword_message,
+        ]
+        self.poodle_vui = Vui(config.KEYWORD, self.kw_listeners, [])
+        self.transcriber = self.poodle_vui.transcriber
+        self.keyword_detector = self.poodle_vui.initialize_kw_detector()
+        self.tts = self.poodle_vui.tts
+        self.tts_local = self.poodle_vui.tts_local
+        ef.silence.clear()
+        ef.speaking.clear()
+        self.chat_utils = self.poodle.chat_utils
+        await self.poodle_vui.start_keyword_detection()
+        self.transcriber_loop = self.set_interval(0.1, self.loop_transcription)
+
+    def on_mount(self):
+        self.query_one("#main_log", RichLog).write(self.welcome())
+        if config.SOUNDS:
+            # notification-sound-7062.mp3
+            playMp3Sound("./sounds/ready.mp3")
+        self.main_log = self.query_one("#main_log", RichLog)
 
     auto_send = Reactive(False)
 
@@ -93,30 +120,6 @@ class PoodleTui(App):
             f"{f}[bright_magenta]Voice interface GPT in your terminal.[/bright_magenta]\n                                v0.08"
         )
         return w
-
-    async def on_mount(self):
-        self.query_one("#main_log", RichLog).write(self.welcome())
-        self.poodle = Poodle(config)
-        self.poodle.run()
-        self.chat_session = self.poodle.get_session()
-        self.kw_listeners = [
-            self.action_input_speech,
-            self.action_print_keyword_message,
-        ]
-        self.poodle_vui = Vui(config.KEYWORD, self.kw_listeners, [])
-        if config.SOUNDS:
-            # notification-sound-7062.mp3
-            playMp3Sound("./sounds/ready.mp3")
-        self.transcriber = self.poodle_vui.transcriber
-        self.keyword_detector = self.poodle_vui.initialize_kw_detector()
-        self.tts = self.poodle_vui.tts
-        self.tts_local = self.poodle_vui.tts_local
-        ef.silence.clear()
-        ef.speaking.clear()
-        self.chat_utils = self.poodle.chat_utils
-        await self.poodle_vui.start_keyword_detection()
-        self.transcriber_loop = self.set_interval(0.1, self.loop_transcription)
-        self.main_log = self.query_one("#main_log", RichLog)
 
     def isSpeak(self):
         if (
@@ -196,7 +199,7 @@ class PoodleTui(App):
             pass
 
     def action_toggle_voice(self):
-        config.SPEAK = not config.SPEAK
+        self.main_log.write(f"voice is set to {config.SPEAK}")
 
     @on(Input.Submitted, "#text_input")
     def add_text_input(self):

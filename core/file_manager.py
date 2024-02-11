@@ -36,13 +36,6 @@ class FileManager:
             outfile.write(content)
 
     @staticmethod
-    def open_file_read(file_path: str):
-        try:
-            return os.open(file_path, os.O_RDONLY)
-        except Exception as e:
-            logging.error(f"Error loading file: {e}")
-
-    @staticmethod
     def read_file(file_path: str) -> str:
         """Read content from a file."""
         with open(file_path, "r") as infile:
