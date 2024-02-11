@@ -1,0 +1,12 @@
+{
+  "STREAM_RESPONSE": false,
+  "SPEAK": "NONE",
+  "VOICE": "shimmer",
+  "AGENT_PATH": "agents/standard.json",
+  "CHAT_MODEL": "gpt-4-1106-preview",
+  "PRESENCE_PENALTY": 1.0,
+  "TEMPERATURE": 1.0,
+  "SOUNDS": false,
+  "KEYWORD": "computer",
+  "LANG": "english-us"
+}

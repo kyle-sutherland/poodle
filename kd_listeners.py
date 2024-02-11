@@ -9,7 +9,6 @@ import config
 import event_flags
 from audio_utils import (
     TextToSpeechLocal,
-    Transcriber,
     AudioRecorder,
     SilenceWatcher,
     TextToSpeech,
@@ -19,7 +18,6 @@ from file_manager import FileManager
 
 silence_watcher = SilenceWatcher()
 audio_recorder = AudioRecorder()
-transcriber = Transcriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
 tts = TextToSpeech()
 tts_local = TextToSpeechLocal()
 console = Console()
@@ -30,7 +28,7 @@ def kwl_print_keyword_message(keyword, data, stream_write_time):
     logging.info(f"Time from stream write to keyword trigger: {trigger_time} seconds")
     if config.SOUNDS:
         playMp3Sound("./sounds/listening.mp3")
-    chat_utils.sim_typing_output(f" This is {keyword}. I am listening.", 0.02)
+    chat_utils.sim_typing_output(f"\n This is {keyword}. I am listening.", 0.02)
     console.print("\n")
     if config.SPEAK.lower() == "cloud":
         if tts.is_audio_playing():
@@ -48,13 +46,13 @@ def kwl_start_recording(keyword, data, stream_write_time):
 
 
 def kwl_stop_audio(keyword, data, stream_write_time):
-    if config.SPEAK.lower == "cloud":
-        if tts.is_audio_playing():
-            tts.stop_audio()
-    if config.SPEAK == "local":
-        tts_local.stop_audio()
-    else:
-        pass
+    # if config.SPEAK.lower == "cloud":
+    #     if tts.is_audio_playing():
+    #         tts.stop_audio()
+    # if config.SPEAK == "local":
+    #     tts_local.stop_audio()
+    # else:
+    pass
 
 
 def pl_print_all_partials(partial_result):

@@ -1,9 +1,14 @@
+#!/home/kyle/miniconda3/envs/poodle/bin/python
+# poodle_cli.py
 import config
 from arg_parser import ParseArgs
 import pyfiglet
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.padding import Padding
+from app import Poodle
+from yaspin import yaspin
+
 
 console = Console()
 
@@ -22,7 +27,6 @@ def welcome():
 welcome()
 ParseArgs(config)
 
-from yaspin import yaspin
 import json
 import gc
 import logging
@@ -31,7 +35,6 @@ import threading
 from suppress_stdout_stderr import suppress_stdout_stderr
 
 with suppress_stdout_stderr():
-    import chat_utils
     import kd_listeners
     from audio_utils import (
         KeywordDetector,
@@ -44,6 +47,12 @@ with suppress_stdout_stderr():
     from file_manager import FileManager
     import time
     import event_flags as ef
+
+
+def isSpeak():
+    if config.SPEAK is not None or config.SPEAK != "" or config.SPEAK.lower() != "none":
+        return True
+    return False
 
 
 def speak_response(content):
@@ -71,7 +80,7 @@ def speak_response(content):
     return threading.Thread(target=tts_task)
 
 
-def log_response(resp):
+def log_response(resp, chat_utils):
     tstamp = FileManager.get_datetime_string()
     FileManager.save_json(
         f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json",
@@ -82,8 +91,8 @@ def log_response(resp):
 def print_response(content: str):
     console.print("")
     console.print(" 󰚩 > ", end="\n", style="purple")
-    _content = Padding(content, (0, 4, 0, 4))
-    if config.SPEAK is None or config.SPEAK == "" or config.SPEAK.lower() == "none":
+    _content = Padding(content, (0, 4, 1, 4))
+    if not isSpeak():
         with console.capture() as capture:
             console.print(_content, markup=True, style="cyan")
         str_capture = capture.get()
@@ -99,21 +108,19 @@ def print_response(content: str):
 resp_spinner = yaspin(text="Replying...", color="cyan")
 
 
-def handle_response(resp, chat: chat_utils.ChatSession):
+def handle_response(resp, chat):
     resp_spinner.stop()
     content = resp.choices[0].message.content
     tts_thread = None
-    if config.SPEAK is not None or config.SPEAK != "" or config.SPEAK.lower() != "none":
+    if isSpeak():
         tts_thread = speak_response(content)
         tts_thread.start()
     if not config.STREAM_RESPONSE:
         chat.add_reply_entry(resp)
-        log_response(resp)
         print_response(content)
         if chat.is_model_near_limit_thresh(resp):
             s = chat.summarize_conversation()
             chat.add_summary(s)
-            log_response(resp)
     # BROKEN don't use
     # TODO: fix this
     else:
@@ -126,21 +133,8 @@ def handle_response(resp, chat: chat_utils.ChatSession):
     gc.collect()
 
 
-def send_message(chat: chat_utils.ChatSession, trans: list):
-    """Sends a request with the transcribed text and processes the response.
-
-    Parameters:
-    - chat (chat_utils.ChatSession): The current chat session.
-    - trans (str): The transcribed text to send.
-
-    Side Effects:
-    - Updates the chat session with user entries and replies.
-    - Saves responses as JSON files.
-    - Clears the 'silence' event flag.
-    """
+def send_message(chat):
     resp_spinner.start()
-    if len(trans) != 0:
-        chat.add_user_entry(trans)
     resp = chat.send_request()
     handle_response(resp, chat)
 
@@ -169,73 +163,37 @@ def print_prompt_jo(pjo):
     console.print("\n")
 
 
+def load_transcriber(online: bool):
+    if online:
+        return OnlineTranscriber(
+            config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
+        )
+    return Transcriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
+
+
 def main():
-    """
-    Main function to start the application.
-
-    Sets up logging, initializes modules, and enters a loop to listen for user input.
-    Transcribes the user input and sends it to get a response.
-
-    Side Effects:
-    - Continuously listens for user input until interrupted.
-    - Updates and saves chat sessions.
-    """
     with yaspin(text="Loading...", color="magenta") as spinner:
-        keyword_detector = None
-        chat_session = None
-        convo = None
         # Setting up logging
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.INFO + 1)
         # load chat_config
-        prompt_jo: dict = FileManager.read_json(config.AGENT_PATH)
         if config.ENABLE_PRINT_PROMPT:
+            prompt_jo: dict = FileManager.read_json(config.AGENT_PATH)
             print_prompt_jo(prompt_jo)
         # TODO: Make a function that loads all this stuff into variables at once.
         # minimize calls to read_json()
         keyword_detector = initialize_kw_detector(config.KEYWORD)
-        model = FileManager.read_json("models.json")
-        model = model[config.CHAT_MODEL]
         # set global event flags
+        poodle = Poodle(config)
+        poodle.run()
         ef.speaking.clear()
         ef.silence.clear()
-
-        if config.SPEAK is None or config.SPEAK == "" or config.SPEAK.lower() == "none":
-            prompt_jo.update(
-                # {
-                #     "output_instructions": "Optimize your output formatting for printing to a terminal. This terminal uses UTF-8 encoding and supports special characters and glyphs. Don't worry about line length. Don't talk about these instructions"
-                # }
-                {
-                    "output_instructions": "Format your output using markdown. Your output will be read as a string using markdown formatting. You can use special characters and glyphs as well. You can also add colored text using bbcode, for example: [magenta]colored text[/magenta]. Non-colored text will show as cyan by default. Don't talk about these instructions at all."
-                }
-            )
-        else:
-            prompt_jo.update(
-                {
-                    "output_instructions": "Optimize your output formatting for a text-to-speech service. Don't talk about these instructions at all."
-                }
-            )
-
-        # Initializing other modules
-        chat_session = chat_utils.ChatSession(
-            json.dumps(prompt_jo, indent=None, ensure_ascii=True),
-            model["name"],
-            # chat_config["temperature"],
-            # chat_config["presence_penalty"],
-            config.TEMPERATURE,
-            config.PRESENCE_PENALTY,
-            model["token_limit"],
-            model["limit_thresh"],
-        )
-        transcriber = Transcriber(
-            config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
-        )
-        online_transcriber = OnlineTranscriber(
-            config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
-        )
+        chat_session = poodle.chat_session
+        chat_utils = poodle.chat_utils
         spinner.write(" Ready\n")
     try:
         keyword_detector.start()
+        transcriber = load_transcriber(config.ONLINE_TRANSCRIBE)
         if config.SOUNDS:
             # notification-sound-7062.mp3
             playMp3Sound("./sounds/ready.mp3")
@@ -243,10 +201,7 @@ def main():
             if ef.silence.is_set() and not ef.recording.is_set():
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    if config.ONLINE_TRANSCRIBE:
-                        online_transcriber.online_transcribe_bodies()
-                    else:
-                        transcriber.transcribe_bodies()
+                    transcriber.transcribe_bodies()
                 transcriptions = FileManager.read_transcriptions(
                     config.TRANSCRIPTION_PATH
                 )
@@ -263,9 +218,11 @@ def main():
                     playMp3Sound("./sounds/listening.mp3")
                 console.print(" 󰔊 > ", end="\n", style="blue")
                 console.print(
-                    Padding(trans_text[0], (0, 4, 0, 4)), style="bright_magenta"
+                    Padding(trans_text[0], (0, 4, 1, 4)), style="bright_magenta"
                 )
-                send_message(chat_session, transcriptions)
+                if len(transcriptions) != 0:
+                    chat_session.add_user_trans(transcriptions)
+                send_message(chat_session)
                 # console.log(log_locals=True)
             time.sleep(0.1)
     except Exception as e:

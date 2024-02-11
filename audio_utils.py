@@ -1,3 +1,4 @@
+# audio_utils.py
 # Standard Library
 import logging
 import os
@@ -172,7 +173,7 @@ class OnlineTranscriber:
         self.api_key = FileManager.read_file("api_keys/keys")
 
     @yaspin(text="Transcribing...")
-    def online_transcribe_bodies(self):
+    def transcribe_bodies(self):
         if len(os.listdir(self.audio_directory)) != 0:
             for file in os.listdir(self.audio_directory):
                 t = time.time()

@@ -1,0 +1,10 @@
+{
+  "ENABLE_PRINT_PROMPT": false,
+  "ENABLE_PERFORMANCE_LOG": true,
+  "ENABLE_ALL_PARTIAL_RESULT_LOG": false,
+  "ENABLE_ACTIVE_SPEECH_LOG": false,
+  "PATH_PROMPT_BODIES_AUDIO": "prompt_bodies_audio/",
+  "TRANSCRIPTION_PATH": "body_transcriptions/",
+  "CONVERSATIONS_PATH": "conversations/",
+  "RESPONSE_LOG_PATH": "response_log/"
+}
