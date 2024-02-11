@@ -1,9 +1,8 @@
 # arg_parser.py
 import argparse
 import json
-from file_manager import FileManager
+from core.file_manager import FileManager
 import whisper
-from rich import print
 from rich.console import Console
 from rich.tree import Tree
 from tabulate import tabulate
@@ -148,9 +147,8 @@ def ParseArgs(config):
         config.KEYWORD = args.keyword[0]
 
     if args.model is not None:
-        models = FileManager.read_json("./models.json")
+        models = FileManager.read_json("../core/models.json")
         sorted_models = get_sorted_chat_models_names(models)
-        tree = Tree(sorted_models)
         if args.model[0] == "help":
             console.print("\navailable models:\n")
             console.print(tabulate(sorted_models))
@@ -182,7 +180,7 @@ def ParseArgs(config):
             quit()
 
     if args.model_info is not None:
-        models = FileManager.read_json("./models.json")
+        models = FileManager.read_json("../core/models.json")
         if args.model_info[0] in models:
             console.print(json.dumps(models[args.model_info[0]], indent=4))
         quit()
