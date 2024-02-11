@@ -4,8 +4,8 @@ import logging
 from suppress_stdout_stderr import suppress_stdout_stderr
 
 with suppress_stdout_stderr():
-    import chat_utils
-    from file_manager import FileManager
+    import core.chat_utils as chat_utils
+    from core.file_manager import FileManager
 
 
 class Poodle:
@@ -35,7 +35,7 @@ class Poodle:
         # The main logic of the application will be moved here.
         # TODO: Make a function that loads all this stuff into variables at once.
         # minimize calls to read_json()
-        model = FileManager.read_json("models.json")
+        model = FileManager.read_json("core/models.json")
         model = model[self.config.CHAT_MODEL]
         # set global event flags
 

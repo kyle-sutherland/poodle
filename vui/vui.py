@@ -2,10 +2,9 @@ import threading
 import json
 import config
 import warnings
-import asyncio
 
 
-from audio_utils import (
+from vui.audio_utils import (
     KeywordDetector,
     Transcriber,
     OnlineTranscriber,
@@ -13,10 +12,9 @@ from audio_utils import (
     TextToSpeech,
     TextToSpeechLocal,
     SilenceWatcher,
-    playMp3Sound,
 )
 import event_flags as ef
-from file_manager import FileManager
+from core.file_manager import FileManager
 
 
 class Vui:

@@ -13,7 +13,7 @@ console = Console()
 
 import openai
 from openai.types.chat import ChatCompletion, chat_completion_chunk
-from file_manager import FileManager
+from core.file_manager import FileManager
 
 
 def handle_response(resp, chat):
@@ -93,11 +93,11 @@ def chat_completion_to_dict(response):
 
 
 @dataclass(frozen=True, order=True)
-class ChatMessages:
+class ChatContent:
     messages: list
 
     def add_message(self, role, content):
-        if content:
+        if content is not None:
             self.messages.append({"role": role, "content": content})
 
     def get_messages(self):
@@ -108,7 +108,7 @@ class ChatSession:
     error_completion = {
         "choices": [
             {
-                "message": {
+                "messages": {
                     "role": "system",
                     "content": "An error occurred with the API request",
                 }
@@ -136,8 +136,7 @@ class ChatSession:
         self.initial_prompt = initial_prompt
         if initial_prompt is None:
             self.initial_prompt = "You are a helpful assistant"
-        self.messages = ChatMessages([])
-        # self.messages: list = json.loads(FileManager.read_file("conversations/conversation_02-08-2023_10-06-14.json"))
+        self.messages = ChatContent([])
         self.temperature = temperature
         if temperature is None:
             self.temperature = 0
@@ -159,14 +158,20 @@ class ChatSession:
                 # {
                 #     "output_instructions": "Optimize your output formatting for printing to a terminal. This terminal uses UTF-8 encoding and supports special characters and glyphs. Don't worry about line length. Don't talk about these instructions"
                 # }
-                "Format your output using markdown. Your output will be read as a string using markdown formatting. You can use special characters and glyphs as well. Your text will output cyan by default, but you can change text colors using bbcode, for example: [magenta]colored text[/magenta]; you can name any of the 256 standard 8-bit coldes supported by terminals. Don't talk about these instructions at all."
+                "Format your output using markdown. Your output will be read as a string using markdown formatting. "
+                "You can use special characters and glyphs as well. Your text will output cyan by default, but you "
+                "can change text colors using bbcode, for example: [magenta]colored text[/magenta]; you can name any "
+                "of the 256 standard 8-bit coldes supported by terminals. Don't talk about these instructions at all."
             )
         else:
             self.add_system_message(
                 "Optimize your output for consumption by a text-to-speech service. Don't talk about these instructions at all."
             )
         self.add_system_message(
-            "User messages may be prepended by either 'trans:', 'text:' to indicate if they are transcribed speech-to-text (trans) or text input the user has typed (text). Transcribed text may contain words that the transcriber has misheard."
+            "User messages may be prepended by either 'trans:', 'text:' or 'file:' to indicate if they are transcribed "
+            "speech-to-text (trans) or text input the user has typed (text). Transcribed text may contain words "
+            "that the transcriber has misheard. if it is prepended with file, the message is the contents of a file"
+            "the use wants you to read."
         )
 
     def add_user_trans(self, trans):
@@ -176,6 +181,10 @@ class ChatSession:
                 self.messages.add_message("user", f"trans: {i}")
             else:
                 pass
+
+    async def add_chat_file(self, file_dir):
+        file_str = FileManager.read_file(file_dir)
+        self.messages.add_message("user", f"file: {file_str}")
 
     def add_user_text(self, text):
         self.messages.add_message("user", f"text: {text}")
@@ -221,19 +230,39 @@ class ChatSession:
             f"./response_log/response_{tstamp}.json", collected_chunks
         )
 
-    async def send_request(self):
-        try:
-            chat_completion = self.ai.chat.completions.create(
-                model=self.model,
-                messages=self.messages.get_messages(),
-                temperature=self.temperature,
-                stream=self.stream,
-            )
-            return chat_completion
+    # async def send_upload_requests(self):
+    #     files = self.messages.get_file_dirs()
+    #     if len(files) != 0:
+    #         for file in files:
+    #             f = open(str(file["file"]), "rb")
+    #             try:
+    #                 file_resp = self.ai.files.create(file=f, purpose=file["purpose"])
+    #                 logging.info(file_resp)
+    #             except Exception as e:
+    #                 logging.error(f"Error uploading file: {e}")
+    #                 return (
+    #                     self.error_completion["choices"][0]["messages"]["content"]
+    #                     + "exception: "
+    #                     + str(e)
+    #                 )
 
-        except Exception as e:
-            logging.error(f"Error sending request: {e}")
-            return self.error_completion
+    async def send_chat_request(self):
+        messages = self.messages.get_messages()
+        if len(messages) != 0:
+            try:
+                chat_completion = self.ai.chat.completions.create(
+                    model=self.model,
+                    messages=self.messages.get_messages(),
+                    temperature=self.temperature,
+                    stream=self.stream,
+                )
+                return chat_completion
+
+            except Exception as e:
+                logging.error(f"Error sending request: {e}")
+                return self.error_completion["choices"][0]["messages"]["content"] + str(
+                    e
+                )
 
     def summarize_conversation(self):
         console.print("\nSummarizing conversation. Please wait...\n")
