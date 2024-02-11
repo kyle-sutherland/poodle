@@ -4,17 +4,17 @@ import time
 import json
 from rich.console import Console
 
-import chat_utils
+import core.chat_utils as chat_utils
 import config
 import event_flags
-from audio_utils import (
+from vui.audio_utils import (
     TextToSpeechLocal,
     AudioRecorder,
     SilenceWatcher,
     TextToSpeech,
     playMp3Sound,
 )
-from file_manager import FileManager
+from core.file_manager import FileManager
 
 silence_watcher = SilenceWatcher()
 audio_recorder = AudioRecorder()
