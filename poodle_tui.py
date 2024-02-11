@@ -69,7 +69,7 @@ class PoodleTui(App):
     BINDINGS = [
         ("d", "toggle_dark", "Dark mode"),
         ("k", "toggle_kw_detection", "toggle kw"),
-        ("shift+s", "send", f"send to {config.KEYWORD}"),
+        ("ctrl+s", "send", f"send to {config.KEYWORD}"),
         ("s", "input_speech, print_keyword_message", f"input speech"),
         ("i", "input_text", "input text"),
         ("v", "toggle_voice", f"toggle voice"),
@@ -186,6 +186,9 @@ class PoodleTui(App):
             self.tts_local.stop_audio()
         else:
             pass
+
+    def action_toggle_voice(self):
+        config.SPEAK = not config.SPEAK
 
     @on(Input.Submitted, "#text_input")
     def add_text_input(self):
