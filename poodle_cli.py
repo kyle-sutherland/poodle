@@ -1,3 +1,4 @@
+#!/home/kyle/miniconda3/envs/poodle/bin/python
 # poodle_cli.py
 import config
 from arg_parser import ParseArgs

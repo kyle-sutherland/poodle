@@ -91,3 +91,9 @@ class FileManager:
             else:
                 continue
         return transcriptions
+
+    @staticmethod
+    def clear_transcriptions(directory: str) -> None:
+        for file in os.listdir(directory):
+            if file.startswith("_read_"):
+                os.remove(file)

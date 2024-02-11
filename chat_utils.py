@@ -5,12 +5,33 @@ from time import sleep
 from rich.console import Console
 from rich import print
 from dataclasses import dataclass
+import event_flags as ef
+import gc
 
 console = Console()
 
 import openai
 from openai.types.chat import ChatCompletion, chat_completion_chunk
 from file_manager import FileManager
+
+
+def handle_response(resp, chat):
+    content = resp.choices[0].message.content
+    chat.add_reply_entry(resp)
+    if chat.is_model_near_limit_thresh(resp):
+        s = chat.summarize_conversation()
+        chat.add_summary(s)
+    ef.silence.clear()
+    gc.collect()
+    return content
+
+
+def log_response(self, resp, chat_utils):
+    tstamp = FileManager.get_datetime_string()
+    FileManager.save_json(
+        f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json",
+        chat_utils.chat_completion_to_dict(resp),
+    )
 
 
 def extract_trans_text(content) -> list:
@@ -144,7 +165,7 @@ class ChatSession:
                 "Optimize your output for consumption by a text-to-speech service. Don't talk about these instructions at all."
             )
         self.add_system_message(
-            "User messages may be prepended by either 'trans: ', 'text:' to indicate if they are transcribed speec-to-text or text input the user has typed."
+            "User messages may be prepended by either 'trans:', 'text:' to indicate if they are transcribed speech-to-text (trans) or text input the user has typed (text). Transcribed text may contain words that the transcriber has misheard."
         )
 
     def add_user_trans(self, trans):
@@ -156,7 +177,7 @@ class ChatSession:
                 pass
 
     def add_user_text(self, text):
-        self.messages.add_message("user", f"text: { text }")
+        self.messages.add_message("user", f"text: {text}")
 
     def add_system_message(self, text):
         self.messages.add_message("system", text)
@@ -199,7 +220,7 @@ class ChatSession:
             f"./response_log/response_{tstamp}.json", collected_chunks
         )
 
-    def send_request(self):
+    async def send_request(self):
         try:
             chat_completion = self.ai.chat.completions.create(
                 model=self.model,

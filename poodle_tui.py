@@ -1,39 +1,27 @@
+#!/home/kyle/miniconda3/envs/poodle/bin/python
 # poodle_tui.py
 from textual.app import App, ComposeResult, RenderResult
 from textual.widget import Widget
-from textual.widgets import Footer, Static, RichLog
+from textual.widgets import Footer, Static, RichLog, Input
 from textual.reactive import Reactive
+from textual import work
+from textual import on
 from rich.text import Text
 from rich.spinner import Spinner
-
-
 import pyfiglet
 from rich.console import Console
 from rich.markdown import Markdown
 import config
-import threading
-import json
 from app import Poodle
-import warnings
-import gc
-import asyncio
 
-from suppress_stdout_stderr import suppress_stdout_stderr
 
-with suppress_stdout_stderr():
-    from audio_utils import (
-        KeywordDetector,
-        Transcriber,
-        OnlineTranscriber,
-        AudioRecorder,
-        TextToSpeech,
-        TextToSpeechLocal,
-        SilenceWatcher,
-        playMp3Sound,
-    )
-    from file_manager import FileManager
-    import time
-    import event_flags as ef
+from audio_utils import (
+    playMp3Sound,
+)
+from file_manager import FileManager
+import event_flags as ef
+
+from vui import Vui
 
 console = Console()
 
@@ -72,17 +60,22 @@ class Hello(Static):
         return self.welcome()
 
 
+class TextInput(Input):
+    BINDINGS = [("ctrl+m", "submit", "submit")]
+
+
 class PoodleTui(App):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.keyword_detection_active = (
-            False  # State variable to track keyword detection status
-        )
 
     BINDINGS = [
         ("d", "toggle_dark", "Dark mode"),
-        ("e", "toggle_kw_detection", "toggle kw"),
+        ("k", "toggle_kw_detection", "toggle kw"),
+        ("shift+s", "send", f"send to {config.KEYWORD}"),
+        ("s", "input_speech, print_keyword_message", f"input speech"),
+        ("i", "input_text", "input text"),
+        ("v", "toggle_voice", f"toggle voice"),
     ]
+
+    auto_send = Reactive(False)
 
     def compose(self) -> ComposeResult:
         yield RichLog(
@@ -99,38 +92,27 @@ class PoodleTui(App):
 
     async def on_mount(self):
         self.query_one("#main_log", RichLog).write(self.welcome())
-        self.mount(SpinnerWidget())
-        SpinnerWidget().activate()
-        self.keyword_detector = self.initialize_kw_detector(config.KEYWORD)
-        self.tts = TextToSpeech()
-        self.silence_watcher = SilenceWatcher()
-        self.audio_recorder = AudioRecorder()
-        self.tts = TextToSpeech()
-        self.tts_local = TextToSpeechLocal()
-        self.transcriber = self.load_transcriber(config.ONLINE_TRANSCRIBE)
         self.poodle = Poodle(config)
         self.poodle.run()
         self.chat_session = self.poodle.get_session()
-        ef.silence.clear()
-        ef.speaking.clear()
-        self.chat_utils = self.poodle.chat_utils
-        self.set_interval(0.1, self.process_transcription_and_send_messages)
-        await self.start_keyword_detection()
-        self.main_log = self.query_one("#main_log", RichLog)
+        self.kw_listeners = [
+            self.action_input_speech,
+            self.action_print_keyword_message,
+        ]
+        self.poodle_vui = Vui(config.KEYWORD, self.kw_listeners, [])
         if config.SOUNDS:
             # notification-sound-7062.mp3
             playMp3Sound("./sounds/ready.mp3")
-        self.call_later(SpinnerWidget().deactivate)
-        self.kw_listeners = []
-
-    def initialize_kw_detector(self, kw, listeners, partia_listeners):
-        detector = KeywordDetector(kw)
-        # add keyword_detector event listeners
-        detector.add_keyword_listener(self.action_start_recording)
-        # detector.add_keyword_listener(kd_listeners.kwl_stop_audio)
-        detector.add_partial_listener(lambda pr: self.pl_no_speech(pr))
-        detector.add_keyword_listener(self.action_print_keyword_message)
-        return detector
+        self.transcriber = self.poodle_vui.transcriber
+        self.keyword_detector = self.poodle_vui.initialize_kw_detector()
+        self.tts = self.poodle_vui.tts
+        self.tts_local = self.poodle_vui.tts_local
+        ef.silence.clear()
+        ef.speaking.clear()
+        self.chat_utils = self.poodle.chat_utils
+        await self.poodle_vui.start_keyword_detection()
+        self.transcriber_loop = self.set_interval(0.1, self.loop_transcription)
+        self.main_log = self.query_one("#main_log", RichLog)
 
     def isSpeak(self):
         if (
@@ -141,23 +123,8 @@ class PoodleTui(App):
             return True
         return False
 
-    def speak_response(self, content):
-        def tts_task():
-            match config.SPEAK.lower():
-                case "cloud":
-                    tts = TextToSpeech()
-                    tts.stream_voice(text=content, voice=config.VOICE)
-                case "local":
-                    tts_local = TextToSpeechLocal()
-                    file = tts_local.generate_speech(text=content)
-                    tts_local.play_audio(file)
-                case _:
-                    pass
-
-        # Start TTS in a separate thread
-        return threading.Thread(target=tts_task)
-
-    def log_response(self, resp, chat_utils):
+    @work
+    async def log_response(self, resp, chat_utils):
         tstamp = FileManager.get_datetime_string()
         FileManager.save_json(
             f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json",
@@ -174,37 +141,24 @@ class PoodleTui(App):
             self.main_log.write(content)
 
     def handle_response(self, resp, chat):
-        content = resp.choices[0].message.content
         tts_thread = None
+        content = self.chat_utils.handle_response(resp, chat)
         if self.isSpeak():
-            tts_thread = self.speak_response(content)
+            tts_thread = self.poodle_vui.speak_response(content)
             tts_thread.start()
-        if not config.STREAM_RESPONSE:
-            chat.add_reply_entry(resp)
-            self.print_response(content)
-            if chat.is_model_near_limit_thresh(resp):
-                s = chat.summarize_conversation()
-                chat.add_summary(s)
-        # BROKEN don't use
-        # TODO: fix this
-        else:
-            chat.extract_streamed_resp_deltas(resp)
+        self.print_response(content)
         if tts_thread is not None:
             tts_thread.join()
-        ef.silence.clear()
-        gc.collect()
 
-    def send_message(self, chat):
-        resp = chat.send_request()
+    @work
+    async def send_message(self, chat):
+        resp = await chat.send_request()
         self.handle_response(resp, chat)
 
-    async def process_transcription_and_send_messages(self):
-        # This function replaces the part of start_keyword_detection related to transcription and sending messages
+    async def loop_transcription(self) -> None:
         if ef.silence.is_set() and not ef.recording.is_set():
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                await asyncio.to_thread(self.transcriber.transcribe_bodies)
-            transcriptions = FileManager.read_transcriptions(config.TRANSCRIPTION_PATH)
+            self.poodle_vui.process_transcriptions()
+            transcriptions: list = self.poodle_vui.get_transcriptions()
             trans_text = self.chat_utils.extract_trans_text(transcriptions)
             if len(trans_text) == 0:
                 if config.SOUNDS:
@@ -216,18 +170,12 @@ class PoodleTui(App):
                 playMp3Sound("./sounds/listening.mp3")
             self.main_log.write("[blue] 󰔊 > [/blue]")
             self.main_log.write(trans_text[0])
-            if len(transcriptions) != 0:
+            if len(str(transcriptions)) != 0:
                 self.chat_session.add_user_trans(transcriptions)
-            self.send_message(self.chat_session)
+            if self.auto_send:
+                self.action_send()
 
-    def load_transcriber(self, online: bool):
-        if online:
-            return OnlineTranscriber(
-                config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
-            )
-        return Transcriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
-
-    def action_print_keyword_message(self, keyword, data, stream_write_time):
+    def action_print_keyword_message(self, keyword, data, stream_write_time) -> None:
         self.main_log.write(f"\n This is {keyword}. I am listening.")
         if config.SOUNDS:
             playMp3Sound("./sounds/listening.mp3")
@@ -239,42 +187,37 @@ class PoodleTui(App):
         else:
             pass
 
-    def action_start_recording(self, keyword, data, stream_write_time):
-        self.audio_recorder.start_recording()
-        self.silence_watcher.reset()
-        ef.stream_write_time = stream_write_time
+    @on(Input.Submitted, "#text_input")
+    def add_text_input(self):
+        input = self.query_one("#text_input", Input)
+        input.remove()
+        text = input.value
+        self.chat_session.add_user_text(text)
+        self.main_log.write("[blue] 󰯓 > [/blue]")
+        self.main_log.write(text)
 
-    async def start_keyword_detection(self):
-        self.kw_detection_thread = threading.Thread(target=self.keyword_detector.start)
-        self.keyword_detection_active = True
-        self.kw_detection_thread.start()
+    def action_input_text(self):
+        new_input = TextInput(id="text_input")
+        self.app.mount(new_input)
+        new_input.focus()
 
-    def stop_keyword_detection(self):
-        self.keyword_detector.close()
-        self.keyword_detection_active = False
-        self.kw_detection_thread.join()
+    def action_input_speech(self, keyword, data, stream_write_time):
+        self.poodle_vui.start_recording(stream_write_time)
+
+    def action_send(self) -> None:
+        self.main_log.write("send it")
+        self.send_message(self.chat_session)
 
     async def action_toggle_kw_detection(self):
-        if self.keyword_detection_active:
-            self.stop_keyword_detection()  # Stop keyword detection
+        if self.poodle_vui.keyword_detection_active:
+            self.poodle_vui.stop_keyword_detection()
             self.main_log.write("Keyword detection stopped.")
         else:
-            await self.start_keyword_detection()  # Start keyword detection
+            await self.poodle_vui.start_keyword_detection()
             self.main_log.write("Keyword detection started.")
 
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
-
-    def pl_no_speech(self, partial_result):
-        pr = json.loads(partial_result)
-        if ef.recording.is_set():
-            if self.silence_watcher.check_silence(pr):
-                ef.silence.set()
-                timestamp = FileManager.get_datetime_string()
-                self.audio_recorder.stop_recording(
-                    f"{config.PATH_PROMPT_BODIES_AUDIO}body_{timestamp}.wav"
-                )
-                self.silence_watcher.reset()
 
 
 if __name__ == "__main__":
