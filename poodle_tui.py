@@ -45,16 +45,13 @@ class SpinnerWidget(Widget):
 
 
 class Hello(Static):
-    def welcome(self):
-        f = pyfiglet.figlet_format("poodle.", font="slant")
-        with console.capture() as w:
-            console.print(
-                f"{f}[bright_magenta]Voice interface GPT in your terminal.[/bright_magenta]\nGPLv3 version0.08"
-            )
-        return w.get()
+    f = pyfiglet.figlet_format("poodle.", font="slant")
+    w = str(
+        f"{f}[bright_magenta]Voice interface GPT in your terminal.[/bright_magenta]\nGPLv3 version0.08"
+    )
 
     def render(self) -> RenderResult:
-        return self.welcome()
+        return self.w
 
 
 class TextInput(Input):
@@ -101,10 +98,11 @@ class PoodleTui(App):
 
     def on_mount(self):
         self.query_one("#main_log", RichLog).write(self.welcome())
+        self.main_log = self.query_one("#main_log", RichLog)
+        self.main_log.write("Ready")
         if config.SOUNDS:
             # notification-sound-7062.mp3
             playMp3Sound("./sounds/ready.mp3")
-        self.main_log = self.query_one("#main_log", RichLog)
 
     auto_send = Reactive(False)
 
@@ -117,7 +115,7 @@ class PoodleTui(App):
     def welcome(self):
         f = pyfiglet.figlet_format("poodle.", font="slant")
         w = str(
-            f"{f}[bright_magenta]Voice interface GPT in your terminal.[/bright_magenta]\n                                v0.08"
+            f"{f}[bright_magenta]Voice interface GPT in your terminal.[/bright_magenta]\n                                v0.04"
         )
         return w
 
@@ -157,16 +155,16 @@ class PoodleTui(App):
         if tts_thread is not None:
             tts_thread.join()
 
-    @work
+    @work(exclusive=True)
     async def send_messages(self, chat):
         resp = await chat.send_chat_request()
         self.handle_response(resp, chat)
 
-    @work
+    @work(exclusive=True)
     async def add_chat_file(self, chat, file_dir):
         await chat.add_chat_file(file_dir)
 
-    async def loop_transcription(self) -> None:
+    def loop_transcription(self) -> None:
         if ef.silence.is_set() and not ef.recording.is_set():
             self.poodle_vui.process_transcriptions()
             transcriptions: list = self.poodle_vui.get_transcriptions()
@@ -178,6 +176,7 @@ class PoodleTui(App):
                 ef.silence.clear()
                 return  # Exit the function early if there's no transcription
             if config.SOUNDS:
+
                 playMp3Sound("./sounds/listening.mp3")
             self.main_log.write("[blue] 󰔊 > [/blue]")
             self.main_log.write(trans_text[0])
