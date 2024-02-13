@@ -1,0 +1,26 @@
+DisplayMessage {
+    grid-size: 2 1;
+    layout: horizontal
+    }
+
+TextInput {
+  offset: 0 -1;
+}
+
+#text_input {
+  dock: bottom;
+}
+
+#file_input {
+  dock: bottom;
+}
+
+#messages {
+    padding: 1 2;
+}
+#assistantMessages {
+    padding: 1 2;
+}
+#userMessages {
+    padding: 1 2;
+}

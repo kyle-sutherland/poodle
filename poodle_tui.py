@@ -1,14 +1,23 @@
 # poodle_tui.py
 from textual.app import App, ComposeResult, RenderResult
+from textual.scroll_view import ScrollView
 from textual.widget import Widget
-from textual.widgets import Footer, Static, RichLog, Input
+from textual.containers import Grid
+from textual.widgets import Footer, Static, RichLog, Input, Label, TextArea
 from textual.reactive import Reactive
 from textual import work
 from textual import on
 from rich.text import Text
 from rich.spinner import Spinner
+from rich.highlighter import ReprHighlighter
+from rich.console import RenderableType
+from rich.console import RenderableType
+from rich.highlighter import ReprHighlighter
+from rich.pretty import Pretty
+from rich.protocol import is_renderable
+from rich.text import Text
+from typing import cast
 import pyfiglet
-from rich.console import Console
 from rich.markdown import Markdown
 import config
 from core.core import Poodle
@@ -17,10 +26,7 @@ from vui.audio_utils import (
 )
 from core.file_manager import FileManager
 import event_flags as ef
-
 from vui.vui import Vui
-
-console = Console()
 
 
 class SpinnerWidget(Widget):
@@ -44,31 +50,89 @@ class SpinnerWidget(Widget):
             return Text("")
 
 
-class Hello(Static):
-    f = pyfiglet.figlet_format("poodle.", font="slant")
-    w = str(
-        f"{f}[bright_magenta]Voice interface GPT in your terminal.[/bright_magenta]\nGPLv3 version0.08"
-    )
+class RichTextInput(TextArea):
+    BINDINGS = [
+        ("escape", "close", "close"),
+        ("ctrl+d", "close", "close"),
+        ("ctrl+s", "submit", "submit"),
+    ]
 
-    def render(self) -> RenderResult:
-        return self.w
-
-
-class TextInput(Input):
-    BINDINGS = [("escape", "close", "close")]
+    def action_submit(self):
+        self.action_close()
 
     def action_close(self):
         self.remove()
 
 
-class ChatDisplayIO(Static):
-    pass
+class TextInput(Input):
+    BINDINGS = [("escape", "close", "close"), ("ctrl+d", "close", "close")]
+
+    def action_close(self):
+        self.remove()
+
+
+class DisplayMessage(Static):
+    def __init__(
+        self,
+        content: RenderableType | object = None,
+        classes="",
+        id: str | None = None,
+        icon="",
+        str_style="",
+    ):
+        super().__init__()
+        if id is not None:
+            self.id = id
+        self.str_style = str_style
+        self.classes = classes
+        self.content = content
+        self.icon = icon
+        self.highlighter = ReprHighlighter()
+
+    def _make_renderable(self, content: RenderableType | object) -> RenderableType:
+        renderable: RenderableType
+        if isinstance(content, str):
+            renderable = Text.from_markup(content, style=self.str_style)
+            renderable = self.highlighter(renderable)
+        else:
+            renderable = cast(RenderableType, content)
+
+        return renderable
+
+    def compose(self):
+        yield Label(self._make_renderable(self.icon), id="icons")
+        yield Label(self._make_renderable(self.content), id="messages")
+
+
+class DisplayUserMessage(DisplayMessage):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self.content = kwargs.get("content")
+        self.icon = kwargs.get("icon")
+        self.str_style = "bright_magenta"
+
+    def compose(self):
+        yield Label(self._make_renderable(self.content), id="userMessages")
+        yield Label(self._make_renderable(self.icon), id="icons")
+
+
+class DisplayAssistantMessage(DisplayMessage):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self.content = kwargs.get("content")
+        self.icon = kwargs.get("icon")
+        self.str_style = "cyan"
+
+    def compose(self):
+        yield Label(self._make_renderable(self.icon), id="icons")
+        yield Label(self._make_renderable(self.content), id="assistantMessages")
 
 
 class PoodleTui(App):
 
+    CSS_PATH = "poodle_tui.tcss"
+
     BINDINGS = [
-        ("d", "toggle_dark", "Dark mode"),
         ("k", "toggle_kw_detection", "toggle kw"),
         ("ctrl+s", "send", f"send to {config.KEYWORD}"),
         ("s", "input_speech, print_keyword_message", f"input speech"),
@@ -95,11 +159,10 @@ class PoodleTui(App):
         self.chat_utils = self.poodle.chat_utils
         await self.poodle_vui.start_keyword_detection()
         self.transcriber_loop = self.set_interval(0.1, self.loop_transcription)
+        self.n_chat_io = 0
 
     def on_mount(self):
-        self.query_one("#main_log", RichLog).write(self.welcome())
-        self.main_log = self.query_one("#main_log", RichLog)
-        self.main_log.write("Ready")
+        self.mount(DisplayMessage(self.welcome(), "hello", "hello"))
         if config.SOUNDS:
             # notification-sound-7062.mp3
             playMp3Sound("./sounds/ready.mp3")
@@ -107,15 +170,13 @@ class PoodleTui(App):
     auto_send = Reactive(False)
 
     def compose(self) -> ComposeResult:
-        yield RichLog(
-            markup=True, highlight=True, auto_scroll=True, wrap=True, id="main_log"
-        )
         yield Footer()
 
     def welcome(self):
         f = pyfiglet.figlet_format("poodle.", font="slant")
         w = str(
-            f"{f}[bright_magenta]Voice interface GPT in your terminal.[/bright_magenta]\n                                v0.04"
+            f"{f}[bright_magenta]Voice interface GPT in your terminal.[/bright_magenta]"
+            "\n                                v0.04"
         )
         return w
 
@@ -137,13 +198,16 @@ class PoodleTui(App):
         )
 
     def print_response(self, content: str):
-        self.main_log.write("")
-        self.main_log.write(" 󰚩 > ")
+        self.n_chat_io = self.n_chat_io + 1
         if not self.isSpeak():
             content_md = Markdown(str(content))
-            self.main_log.write(content_md)
+            self.mount(
+                DisplayMessage(content_md, classes=f"response-message", icon=" 󰚩 > ")
+            )
         else:
-            self.main_log.write(content)
+            self.mount(
+                DisplayMessage(content, classes=f"response-message", icon=" 󰚩 > ")
+            )
 
     def handle_response(self, resp, chat):
         tts_thread = None
@@ -172,21 +236,35 @@ class PoodleTui(App):
             if len(trans_text) == 0:
                 if config.SOUNDS:
                     playMp3Sound("./sounds/badcopy.mp3")
-                self.main_log.write(" I didn't hear you\n")
+                self.mount(
+                    DisplayMessage(
+                        content=" I didn't hear you",
+                        classes="local",
+                    )
+                )
                 ef.silence.clear()
                 return  # Exit the function early if there's no transcription
             if config.SOUNDS:
 
                 playMp3Sound("./sounds/listening.mp3")
-            self.main_log.write("[blue] 󰔊 > [/blue]")
-            self.main_log.write(trans_text[0])
+            self.n_chat_io = self.n_chat_io + 1
+            self.mount(
+                DisplayUserMessage(
+                    trans_text[0], icon="[blue] < 󰔊 [/blue]", classes="local"
+                )
+            )
             if len(str(transcriptions)) != 0:
                 self.chat_session.add_user_trans(transcriptions)
             if self.auto_send:
                 self.action_send()
 
     def action_print_keyword_message(self, keyword, data, stream_write_time) -> None:
-        self.main_log.write(f"\n This is {keyword}. I am listening.")
+        self.mount(
+            DisplayMessage(
+                f"\n This is {keyword}. I am listening.",
+                classes="local",
+            )
+        )
         if config.SOUNDS:
             playMp3Sound("./sounds/listening.mp3")
         if config.SPEAK.lower() == "cloud":
@@ -198,27 +276,40 @@ class PoodleTui(App):
             pass
 
     def action_toggle_voice(self):
-        self.main_log.write(f"voice is set to {config.SPEAK}")
+        self.mount(
+            DisplayMessage(
+                f"voice is set to {config.SPEAK}",
+                classes="local",
+            )
+        )
 
     @on(Input.Submitted, "#text_input")
     def add_text_input(self):
         input = self.query_one("#text_input", TextInput)
         text = input.value
         self.chat_session.add_user_text(text)
-        self.main_log.write("[blue] 󰯓 > [/blue]")
-        self.main_log.write(text)
+        self.mount(
+            DisplayUserMessage(
+                content=text, classes=f"user-message", icon="[blue] < 󰯓  [/blue]"
+            )
+        )
+        input.clear()
 
     @on(Input.Submitted, "#file_input")
     def add_file_input(self):
         input = self.query_one("#file_input", TextInput)
         file_dir = input.value
         self.add_chat_file(self.chat_session, file_dir)
-        self.main_log.write("[blue] 󰛶 > [/blue]")
-        self.main_log.write(file_dir)
+        self.mount(
+            DisplayUserMessage(
+                content=file_dir, icon="[blue] < 󰛶  [/blue]", classes="user-file"
+            )
+        )
+        input.clear()
 
     def action_input_file(self):
         new_input = TextInput(id="file_input")
-        self.app.mount(new_input)
+        self.mount(new_input)
         new_input.focus()
 
     def action_input_text(self):
@@ -230,16 +321,26 @@ class PoodleTui(App):
         self.poodle_vui.start_recording(stream_write_time)
 
     def action_send(self) -> None:
-        self.main_log.write("send it")
+        self.mount(DisplayAssistantMessage("send it", classes="local"))
         self.send_messages(self.chat_session)
 
     async def action_toggle_kw_detection(self):
         if self.poodle_vui.keyword_detection_active:
             self.poodle_vui.stop_keyword_detection()
-            self.main_log.write("Keyword detection stopped.")
+            self.mount(
+                DisplayMessage(
+                    "Keyword detection stopped.",
+                    classes="local",
+                )
+            )
         else:
             await self.poodle_vui.start_keyword_detection()
-            self.main_log.write("Keyword detection started.")
+            self.mount(
+                DisplayMessage(
+                    "Keyword detection started.",
+                    classes="local",
+                )
+            )
 
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
