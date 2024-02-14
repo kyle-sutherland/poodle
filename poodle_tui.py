@@ -1,9 +1,7 @@
 # poodle_tui.py
-from textual.app import App, ComposeResult, RenderResult
-from textual.scroll_view import ScrollView
+from textual.app import App, ComposeResult
 from textual.widget import Widget
-from textual.containers import Grid
-from textual.widgets import Footer, Static, RichLog, Input, Label, TextArea
+from textual.widgets import Footer, Static, Input, Label, TextArea
 from textual.reactive import Reactive
 from textual import work
 from textual import on
@@ -13,8 +11,6 @@ from rich.highlighter import ReprHighlighter
 from rich.console import RenderableType
 from rich.console import RenderableType
 from rich.highlighter import ReprHighlighter
-from rich.pretty import Pretty
-from rich.protocol import is_renderable
 from rich.text import Text
 from typing import cast
 import pyfiglet
@@ -71,28 +67,32 @@ class TextInput(Input):
         self.remove()
 
 
-class DisplayMessage(Static):
+class DisplayMessage(Box):
     def __init__(
         self,
         content: RenderableType | object = None,
         classes="",
         id: str | None = None,
-        icon="",
-        str_style="",
+        content_style="",
+        align_horizontal="left",
     ):
         super().__init__()
         if id is not None:
             self.id = id
-        self.str_style = str_style
+        self.content_style = content_style
         self.classes = classes
         self.content = content
-        self.icon = icon
         self.highlighter = ReprHighlighter()
+        self.styles.align_horizontal = align_horizontal
+        self.styles.height = "auto"
+        self.styles.margin = 0
 
-    def _make_renderable(self, content: RenderableType | object) -> RenderableType:
+    def _make_renderable(
+        self, content: RenderableType | object, style: str = ""
+    ) -> RenderableType:
         renderable: RenderableType
         if isinstance(content, str):
-            renderable = Text.from_markup(content, style=self.str_style)
+            renderable = Text.from_markup(content, style=style)
             renderable = self.highlighter(renderable)
         else:
             renderable = cast(RenderableType, content)
@@ -100,32 +100,37 @@ class DisplayMessage(Static):
         return renderable
 
     def compose(self):
-        yield Label(self._make_renderable(self.icon), id="icons")
-        yield Label(self._make_renderable(self.content), id="messages")
+        yield Label(
+            self._make_renderable(self.content, self.content_style), id="messages"
+        )
 
 
 class DisplayUserMessage(DisplayMessage):
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-        self.content = kwargs.get("content")
-        self.icon = kwargs.get("icon")
-        self.str_style = "bright_magenta"
+    def __init__(self, icon: str, icon_style: str, **kwargs):
+        super().__init__(**kwargs)
+        self.icon = icon
+        self.styles.align_horizontal = "right"
+        self.icon_style = icon_style
 
     def compose(self):
-        yield Label(self._make_renderable(self.content), id="userMessages")
-        yield Label(self._make_renderable(self.icon), id="icons")
+        yield Static(
+            self._make_renderable(self.content, self.content_style), id="user_messages"
+        )
+        yield Static(self._make_renderable(self.icon, self.icon_style), id="icons")
 
 
 class DisplayAssistantMessage(DisplayMessage):
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-        self.content = kwargs.get("content")
-        self.icon = kwargs.get("icon")
-        self.str_style = "cyan"
+    def __init__(self, icon: str, icon_style: str, **kwargs):
+        super().__init__(**kwargs)
+        self.icon = icon
+        self.icon_style = icon_style
 
     def compose(self):
-        yield Label(self._make_renderable(self.icon), id="icons")
-        yield Label(self._make_renderable(self.content), id="assistantMessages")
+        yield Label(self._make_renderable(self.icon, self.icon_style), id="icons")
+        yield Label(
+            self._make_renderable(self.content, self.content_style),
+            id="assistant_messages",
+        )
 
 
 class PoodleTui(App):
@@ -134,10 +139,10 @@ class PoodleTui(App):
 
     BINDINGS = [
         ("k", "toggle_kw_detection", "toggle kw"),
-        ("ctrl+s", "send", f"send to {config.KEYWORD}"),
-        ("s", "input_speech, print_keyword_message", f"input speech"),
-        ("i", "input_text", "input text"),
-        ("v", "toggle_voice", "toggle voice"),
+        ("ctrl+s", "send", f"send"),
+        ("s", "input_speech, print_keyword_message", f"speech"),
+        ("t", "input_text", "text"),
+        ("v", "toggle_voice", "voice response"),
         ("u", "input_file", "upload file"),
     ]
 
@@ -162,7 +167,7 @@ class PoodleTui(App):
         self.n_chat_io = 0
 
     def on_mount(self):
-        self.mount(DisplayMessage(self.welcome(), "hello", "hello"))
+        self.mount(DisplayMessage(self.welcome(), id="welcome"))
         if config.SOUNDS:
             # notification-sound-7062.mp3
             playMp3Sound("./sounds/ready.mp3")
@@ -190,23 +195,33 @@ class PoodleTui(App):
         return False
 
     @work
-    async def log_response(self, resp, chat_utils):
+    async def log_response(self, resp, chat_utils) -> None:
         tstamp = FileManager.get_datetime_string()
         FileManager.save_json(
             f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json",
             chat_utils.chat_completion_to_dict(resp),
         )
 
-    def print_response(self, content: str):
+    def print_response(self, content: str) -> None:
         self.n_chat_io = self.n_chat_io + 1
         if not self.isSpeak():
             content_md = Markdown(str(content))
             self.mount(
-                DisplayMessage(content_md, classes=f"response-message", icon=" 󰚩 > ")
+                DisplayAssistantMessage(
+                    content=content_md,
+                    classes="assistant_message_container",
+                    icon=" 󰚩 >",
+                    icon_style="green",
+                )
             )
         else:
             self.mount(
-                DisplayMessage(content, classes=f"response-message", icon=" 󰚩 > ")
+                DisplayAssistantMessage(
+                    content=content,
+                    classes="assistant_message_container",
+                    icon=" 󰚩 >",
+                    icon_style="green",
+                )
             )
 
     def handle_response(self, resp, chat):
@@ -220,12 +235,12 @@ class PoodleTui(App):
             tts_thread.join()
 
     @work(exclusive=True)
-    async def send_messages(self, chat):
+    async def send_messages(self, chat) -> None:
         resp = await chat.send_chat_request()
         self.handle_response(resp, chat)
 
     @work(exclusive=True)
-    async def add_chat_file(self, chat, file_dir):
+    async def add_chat_file(self, chat, file_dir) -> None:
         await chat.add_chat_file(file_dir)
 
     def loop_transcription(self) -> None:
@@ -250,7 +265,10 @@ class PoodleTui(App):
             self.n_chat_io = self.n_chat_io + 1
             self.mount(
                 DisplayUserMessage(
-                    trans_text[0], icon="[blue] < 󰔊 [/blue]", classes="local"
+                    content=trans_text[0],
+                    icon="< 󰔊 ",
+                    classes="user_voice_container",
+                    icon_style="blue",
                 )
             )
             if len(str(transcriptions)) != 0:
@@ -275,7 +293,7 @@ class PoodleTui(App):
         else:
             pass
 
-    def action_toggle_voice(self):
+    def action_toggle_voice(self) -> None:
         self.mount(
             DisplayMessage(
                 f"voice is set to {config.SPEAK}",
@@ -284,47 +302,53 @@ class PoodleTui(App):
         )
 
     @on(Input.Submitted, "#text_input")
-    def add_text_input(self):
+    def add_text_input(self) -> None:
         input = self.query_one("#text_input", TextInput)
         text = input.value
         self.chat_session.add_user_text(text)
         self.mount(
             DisplayUserMessage(
-                content=text, classes=f"user-message", icon="[blue] < 󰯓  [/blue]"
+                content=text,
+                classes="user_text_container",
+                icon="< 󰯓  ",
+                icon_style="blue",
             )
         )
         input.clear()
 
     @on(Input.Submitted, "#file_input")
-    def add_file_input(self):
+    def add_file_input(self) -> None:
         input = self.query_one("#file_input", TextInput)
         file_dir = input.value
         self.add_chat_file(self.chat_session, file_dir)
         self.mount(
             DisplayUserMessage(
-                content=file_dir, icon="[blue] < 󰛶  [/blue]", classes="user-file"
+                content=file_dir,
+                icon="< 󰛶  ",
+                classes="user-file",
+                icon_style="blue",
             )
         )
         input.clear()
 
-    def action_input_file(self):
+    def action_input_file(self) -> None:
         new_input = TextInput(id="file_input")
         self.mount(new_input)
         new_input.focus()
 
-    def action_input_text(self):
+    def action_input_text(self) -> None:
         new_input = TextInput(id="text_input")
         self.app.mount(new_input)
         new_input.focus()
 
-    def action_input_speech(self, keyword, data, stream_write_time):
+    def action_input_speech(self, keyword, data, stream_write_time) -> None:
         self.poodle_vui.start_recording(stream_write_time)
 
     def action_send(self) -> None:
-        self.mount(DisplayAssistantMessage("send it", classes="local"))
+        self.mount(DisplayMessage("send it", align_horizontal="center", classes="info"))
         self.send_messages(self.chat_session)
 
-    async def action_toggle_kw_detection(self):
+    async def action_toggle_kw_detection(self) -> None:
         if self.poodle_vui.keyword_detection_active:
             self.poodle_vui.stop_keyword_detection()
             self.mount(

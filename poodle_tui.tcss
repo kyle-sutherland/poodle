@@ -1,6 +1,10 @@
-DisplayMessage {
-    grid-size: 2 1;
-    layout: horizontal
+DisplayMessage { 
+    grid-size: 2 1; 
+    grid-columns: auto 10%;
+    layout: grid;
+    box-sizing: content-box;
+    border: solid;
+    text-align: left;
     }
 
 TextInput {
@@ -15,12 +19,17 @@ TextInput {
   dock: bottom;
 }
 
-#messages {
-    padding: 1 2;
+#icons {
+  padding: 0;
 }
-#assistantMessages {
-    padding: 1 2;
+
+#welcome {
+    padding: 0 4 1 4;
 }
-#userMessages {
-    padding: 1 2;
+
+#assistant_messages {
+    padding: 1 1;
+}
+#user_messages {
+    padding: 1 1;
 }
