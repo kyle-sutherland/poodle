@@ -30,24 +30,34 @@ class FileManager:
         return timestamp
 
     @staticmethod
-    def write_file(file_path: str, content: str):
-        """Write content to a file."""
-        with open(file_path, "w") as outfile:
-            outfile.write(content)
+    def write_file(file_path: str, content: str) -> None:
+        try:
+            """Write content to a file."""
+            with open(file_path, "w") as outfile:
+                outfile.write(content)
+        except Exception as e:
+            logging.error(e)
 
     @staticmethod
     def read_file(file_path: str) -> str:
-        """Read content from a file."""
-        with open(file_path, "r") as infile:
-            return infile.read()
+        try:
+            """Read content from a file."""
+            with open(file_path, "r") as infile:
+                return infile.read()
+        except Exception as e:
+            return f"Error reading file: {e}"
 
     @staticmethod
     def read_json(file_path: str) -> dict:
         """read json file and return contents as dict"""
         data = None
-        with open(file_path, "r") as infile:
-            data = json.load(infile)
-        return data
+        try:
+            with open(file_path, "r") as infile:
+                data = json.load(infile)
+            return data
+        except Exception as e:
+            logging.error(e)
+            return {"error": e}
 
     @staticmethod
     def delete_transcription(file_name: str):
@@ -56,10 +66,13 @@ class FileManager:
         os.remove(file_path)
 
     @staticmethod
-    def save_json(file_name: str, content: dict or list or ChatCompletion):
+    def save_json(file_name: str, content: dict | list | ChatCompletion):
         """Save content as a JSON file."""
-        with open(file_name, "w") as f:
-            json.dump(content, fp=f, indent=4)
+        try:
+            with open(file_name, "w") as f:
+                json.dump(content, fp=f, indent=4)
+        except Exception as e:
+            logging.error(e)
 
     @staticmethod
     def mark_as_read(file_name: str):

@@ -64,10 +64,6 @@ class TextInput(Input):
         self.remove()
 
 
-class ChatDisplayIO(Static):
-    pass
-
-
 class PoodleTui(App):
 
     BINDINGS = [
@@ -117,7 +113,8 @@ class PoodleTui(App):
     def welcome(self):
         f = pyfiglet.figlet_format("poodle.", font="slant")
         w = str(
-            f"{f}[bright_magenta]Voice interface GPT in your terminal.[/bright_magenta]\n                                v0.08"
+            f"{f}[bright_magenta]Voice interface GPT in your terminal.[/bright_magenta]"
+            "\n                                v0.04"
         )
         return w
 
@@ -147,9 +144,9 @@ class PoodleTui(App):
         else:
             self.main_log.write(content)
 
-    def handle_response(self, resp, chat):
+    def handle_response(self, resp):
         tts_thread = None
-        content = self.chat_utils.handle_response(resp, chat)
+        content = self.chat_utils.handle_response(resp, self.chat_session)
         if self.isSpeak():
             tts_thread = self.poodle_vui.speak_response(content)
             tts_thread.start()
@@ -160,11 +157,11 @@ class PoodleTui(App):
     @work
     async def send_messages(self, chat):
         resp = await chat.send_chat_request()
-        self.handle_response(resp, chat)
+        self.handle_response(resp)
 
     @work
-    async def add_chat_file(self, chat, file_dir):
-        await chat.add_chat_file(file_dir)
+    async def add_chat_file(self, file_dir):
+        await self.chat_session.add_chat_file(file_dir)
 
     async def loop_transcription(self) -> None:
         if ef.silence.is_set() and not ef.recording.is_set():
@@ -213,7 +210,7 @@ class PoodleTui(App):
     def add_file_input(self):
         input = self.query_one("#file_input", TextInput)
         file_dir = input.value
-        self.add_chat_file(self.chat_session, file_dir)
+        self.add_chat_file(file_dir)
         self.main_log.write("[blue] 󰛶 > [/blue]")
         self.main_log.write(file_dir)
 

@@ -12,6 +12,7 @@ from yaspin import yaspin
 # Third Party Libraries
 import openai
 import pyaudio
+from pyaudio import Stream
 import simpleaudio
 import torch.cuda
 import vosk
@@ -199,7 +200,7 @@ class AudioRecorder:
         self.sample_rate = int(self.default_device_info["defaultSampleRate"])
         self.frames_per_buffer = 2048
         self.frames = []
-        self.stream = None
+        self.stream: Stream | None = None
 
     def start_recording(self):
         stream = self.pa.open(
