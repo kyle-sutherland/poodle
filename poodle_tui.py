@@ -26,12 +26,25 @@ from vui.vui import Vui
 
 
 class SpinnerWidget(Widget):
+    def __init__(
+        self,
+        message: str = "Loading...",
+        spinner_color: str = "",
+        text_color: str = "",
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.message = message
+        self.spinner_color = spinner_color
+        self.text_color = text_color
+
     spinner = Spinner("dots", "Loading...", style="magenta")
     message = Reactive("")
 
-    def activate(self, message="Loading..."):
-        self.message = message
-        self.spinner.text = Text.from_markup(f"[b]{message}[/b]", style="yellow")
+    def activate(self):
+        self.spinner.text = Text(f"[b]{self.message}[/b]", style=self.text_color)
+        self.spinner.style = self.spinner_color
         self.visible = True
         self.refresh()
 
@@ -224,9 +237,9 @@ class PoodleTui(App):
                 )
             )
 
-    def handle_response(self, resp, chat):
+    def handle_response(self, resp):
         tts_thread = None
-        content = self.chat_utils.handle_response(resp, chat)
+        content = self.chat_utils.handle_response(resp, self.chat_session)
         if self.isSpeak():
             tts_thread = self.poodle_vui.speak_response(content)
             tts_thread.start()
@@ -237,11 +250,11 @@ class PoodleTui(App):
     @work(exclusive=True)
     async def send_messages(self, chat) -> None:
         resp = await chat.send_chat_request()
-        self.handle_response(resp, chat)
+        self.handle_response(resp)
 
-    @work(exclusive=True)
-    async def add_chat_file(self, chat, file_dir) -> None:
-        await chat.add_chat_file(file_dir)
+    @work
+    async def add_chat_file(self, file_dir):
+        await self.chat_session.add_chat_file(file_dir)
 
     def loop_transcription(self) -> None:
         if ef.silence.is_set() and not ef.recording.is_set():

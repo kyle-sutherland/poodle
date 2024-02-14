@@ -1,11 +1,9 @@
 # app.py
 import json
 import logging
-from suppress_stdout_stderr import suppress_stdout_stderr
-
-with suppress_stdout_stderr():
-    import core.chat_utils as chat_utils
-    from core.file_manager import FileManager
+import core.chat_utils
+from core.chat_utils import ChatSession
+from core.file_manager import FileManager
 
 
 class Poodle:
@@ -13,11 +11,10 @@ class Poodle:
         self.config = config
         # Initialize other attributes as needed.
         self.keyword_detector = None
-        self.chat_session = None
         self.convo = None
-        self.chat_utils = chat_utils
+        self.chat_utils = core.chat_utils
         self.prompt_jo: dict = FileManager.read_json(self.config.AGENT_PATH)
-        self.chat_session
+        self.chat_session: ChatSession
 
     def isSpeak(self):
         if (
@@ -28,7 +25,7 @@ class Poodle:
             return True
         return False
 
-    def get_session(self):
+    def get_session(self) -> ChatSession:
         return self.chat_session
 
     def run(self):
@@ -40,7 +37,7 @@ class Poodle:
         # set global event flags
 
         # Initializing other modules
-        self.chat_session = chat_utils.ChatSession(
+        self.chat_session = ChatSession(
             json.dumps(self.prompt_jo, indent=None, ensure_ascii=True),
             model["name"],
             self.config.TEMPERATURE,
