@@ -1,22 +1,32 @@
 DisplayMessage { 
     grid-size: 2 1; 
-    grid-columns: auto 10%;
+    grid-columns: auto;
     layout: grid;
     box-sizing: content-box;
     border: solid;
     text-align: left;
     }
 
+SpinnerWidget {
+  dock: top;
+}
+
 TextInput {
-  offset: 0 -1;
-}
-
-#text_input {
+  offset: 0 -2;
   dock: bottom;
 }
 
-#file_input {
-  dock: bottom;
+#header{
+  layout: horizontal;
+  height: 1fr;
+}
+
+#chat_view{
+  height: 3fr;
+}
+
+#info{
+  width: 3fr;
 }
 
 #icons {
@@ -24,7 +34,8 @@ TextInput {
 }
 
 #welcome {
-    padding: 0 4 1 4;
+    padding: 0 1 2 5;
+    width: 2fr;
 }
 
 #assistant_messages {

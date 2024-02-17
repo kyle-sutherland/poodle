@@ -1,12 +1,15 @@
 # poodle_tui.py
+import time
+from textual.containers import Container, VerticalScroll
 from textual.app import App, ComposeResult
 from textual.widget import Widget
-from textual.widgets import Footer, Static, Input, Label, TextArea
+from textual.widgets import Footer, Static, Input, Label, TextArea, Placeholder
 from textual.reactive import Reactive
 from textual import work
 from textual import on
 from rich.text import Text
 from rich.spinner import Spinner
+from rich.progress import Progress, BarColumn
 from rich.highlighter import ReprHighlighter
 from rich.console import RenderableType
 from rich.console import RenderableType
@@ -23,40 +26,40 @@ from vui.audio_utils import (
 from core.file_manager import FileManager
 import event_flags as ef
 from vui.vui import Vui
+import textwrap
 
 
-class SpinnerWidget(Widget):
-    def __init__(
-        self,
-        message: str = "Loading...",
-        spinner_color: str = "",
-        text_color: str = "",
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        self.message = message
-        self.spinner_color = spinner_color
-        self.text_color = text_color
+class IntervalUpdater(Static):
+    _renderable_object: RenderableType
 
-    spinner = Spinner("dots", "Loading...", style="magenta")
-    message = Reactive("")
+    def update_rendering(self) -> None:
+        self.update(self._renderable_object)
 
-    def activate(self):
-        self.spinner.text = Text(f"[b]{self.message}[/b]", style=self.text_color)
-        self.spinner.style = self.spinner_color
-        self.visible = True
-        self.refresh()
+    def on_mount(self) -> None:
+        self.interval_update = self.set_interval(1 / 60, self.update_rendering)
 
-    def deactivate(self):
-        self.visible = False
-        self.refresh()
+    def pause(self) -> None:
+        self.interval_update.pause()
 
-    def render(self):
-        if self.visible:
-            return self.spinner
-        else:
-            return Text("")
+    def resume(self) -> None:
+        self.interval_update.resume()
+
+
+class IndeterminateProgressBar(IntervalUpdater):
+    """Basic indeterminate progress bar widget based on rich.progress.Progress."""
+
+    def __init__(self) -> None:
+        super().__init__("")
+        self._renderable_object = Progress(BarColumn())
+        self._renderable_object.add_task("", total=None)
+
+
+class SpinnerWidget(IntervalUpdater):
+    """Basic spinner widget based on rich.spinner.Spinner."""
+
+    def __init__(self, name: str, style: str, text: str) -> None:
+        super().__init__("")
+        self._renderable_object = Spinner(name=name, text=text, style=style)
 
 
 class RichTextInput(TextArea):
@@ -80,7 +83,7 @@ class TextInput(Input):
         self.remove()
 
 
-class DisplayMessage(Box):
+class DisplayMessage(Static):
     def __init__(
         self,
         content: RenderableType | object = None,
@@ -99,6 +102,7 @@ class DisplayMessage(Box):
         self.styles.align_horizontal = align_horizontal
         self.styles.height = "auto"
         self.styles.margin = 0
+        self.can_focus = True
 
     def _make_renderable(
         self, content: RenderableType | object, style: str = ""
@@ -126,10 +130,10 @@ class DisplayUserMessage(DisplayMessage):
         self.icon_style = icon_style
 
     def compose(self):
-        yield Static(
+        yield Label(
             self._make_renderable(self.content, self.content_style), id="user_messages"
         )
-        yield Static(self._make_renderable(self.icon, self.icon_style), id="icons")
+        yield Label(self._make_renderable(self.icon, self.icon_style), id="icons")
 
 
 class DisplayAssistantMessage(DisplayMessage):
@@ -151,12 +155,13 @@ class PoodleTui(App):
     CSS_PATH = "poodle_tui.tcss"
 
     BINDINGS = [
-        ("k", "toggle_kw_detection", "toggle kw"),
-        ("ctrl+s", "send", f"send"),
+        ("k", "toggle_kw_detection", "kw detection"),
+        ("ctrl+s", "send", "send"),
         ("s", "input_speech, print_keyword_message", f"speech"),
         ("t", "input_text", "text"),
-        ("v", "toggle_voice", "voice response"),
-        ("u", "input_file", "upload file"),
+        ("v", "toggle_voice", "voice"),
+        ("f", "input_file", "parse file"),
+        ("ctrl+q", "quit", "quit"),
     ]
 
     async def on_load(self):
@@ -177,10 +182,17 @@ class PoodleTui(App):
         self.chat_utils = self.poodle.chat_utils
         await self.poodle_vui.start_keyword_detection()
         self.transcriber_loop = self.set_interval(0.1, self.loop_transcription)
-        self.n_chat_io = 0
+        self.wrap_width = 92
 
     def on_mount(self):
-        self.mount(DisplayMessage(self.welcome(), id="welcome"))
+        self.spinners = {
+            "transcribing": SpinnerWidget("dots", "blue", "Transcribing..."),
+            "vocalizing": SpinnerWidget("dots", "yellow", "Vocalizing..."),
+            "replying": SpinnerWidget("dots", "bright_magenta", "Replying..."),
+        }
+        for spinner in self.spinners:
+            self.mount(self.spinners[spinner])
+            self.spinners[spinner].visible = False
         if config.SOUNDS:
             # notification-sound-7062.mp3
             playMp3Sound("./sounds/ready.mp3")
@@ -188,6 +200,12 @@ class PoodleTui(App):
     auto_send = Reactive(False)
 
     def compose(self) -> ComposeResult:
+        yield Container(
+            DisplayMessage(self.welcome(), id="welcome"),
+            Placeholder(id="info"),
+            id="header",
+        )
+        yield VerticalScroll(id="chat_view")
         yield Footer()
 
     def welcome(self):
@@ -215,11 +233,22 @@ class PoodleTui(App):
             chat_utils.chat_completion_to_dict(resp),
         )
 
-    def print_response(self, content: str) -> None:
-        self.n_chat_io = self.n_chat_io + 1
+    @work(exclusive=True)
+    async def print_response(self, content: str) -> None:
+        self.spinners["replying"].visible = False
+        content_wrapped = "\n".join(
+            textwrap.wrap(
+                content,
+                width=self.wrap_width,
+                replace_whitespace=False,
+                drop_whitespace=False,
+                break_on_hyphens=False,
+                expand_tabs=False,
+            )
+        )
         if not self.isSpeak():
-            content_md = Markdown(str(content))
-            self.mount(
+            content_md = Markdown(str(content_wrapped))
+            self.query_one("#chat_view").mount(
                 DisplayAssistantMessage(
                     content=content_md,
                     classes="assistant_message_container",
@@ -228,16 +257,16 @@ class PoodleTui(App):
                 )
             )
         else:
-            self.mount(
+            self.query_one("#chat_view").mount(
                 DisplayAssistantMessage(
-                    content=content,
+                    content=content_wrapped,
                     classes="assistant_message_container",
                     icon=" 󰚩 >",
                     icon_style="green",
                 )
             )
 
-    def handle_response(self, resp):
+    async def handle_response(self, resp):
         tts_thread = None
         content = self.chat_utils.handle_response(resp, self.chat_session)
         if self.isSpeak():
@@ -247,10 +276,11 @@ class PoodleTui(App):
         if tts_thread is not None:
             tts_thread.join()
 
-    @work(exclusive=True)
-    async def send_messages(self, chat) -> None:
-        resp = await chat.send_chat_request()
-        self.handle_response(resp)
+    @work(thread=True)
+    async def send_messages(self) -> None:
+        self.spinners["replying"].visible = True
+        resp = await self.chat_session.send_chat_request()
+        await self.handle_response(resp)
 
     @work
     async def add_chat_file(self, file_dir):
@@ -261,6 +291,9 @@ class PoodleTui(App):
             self.poodle_vui.process_transcriptions()
             transcriptions: list = self.poodle_vui.get_transcriptions()
             trans_text = self.chat_utils.extract_trans_text(transcriptions)
+            wrapped_text = "\n".join(
+                textwrap.wrap(trans_text[0], width=self.wrap_width)
+            )
             if len(trans_text) == 0:
                 if config.SOUNDS:
                     playMp3Sound("./sounds/badcopy.mp3")
@@ -275,13 +308,13 @@ class PoodleTui(App):
             if config.SOUNDS:
 
                 playMp3Sound("./sounds/listening.mp3")
-            self.n_chat_io = self.n_chat_io + 1
-            self.mount(
+            self.query_one("#chat_view").mount(
                 DisplayUserMessage(
-                    content=trans_text[0],
+                    content=wrapped_text,
                     icon="< 󰔊 ",
                     classes="user_voice_container",
                     icon_style="blue",
+                    content_style="bright_magenta",
                 )
             )
             if len(str(transcriptions)) != 0:
@@ -290,7 +323,7 @@ class PoodleTui(App):
                 self.action_send()
 
     def action_print_keyword_message(self, keyword, data, stream_write_time) -> None:
-        self.mount(
+        self.query_one("#chat_view").mount(
             DisplayMessage(
                 f"\n This is {keyword}. I am listening.",
                 classes="local",
@@ -307,7 +340,7 @@ class PoodleTui(App):
             pass
 
     def action_toggle_voice(self) -> None:
-        self.mount(
+        self.query_one("#chat_view").mount(
             DisplayMessage(
                 f"voice is set to {config.SPEAK}",
                 classes="local",
@@ -317,9 +350,10 @@ class PoodleTui(App):
     @on(Input.Submitted, "#text_input")
     def add_text_input(self) -> None:
         input = self.query_one("#text_input", TextInput)
-        text = input.value
+        text: str = input.value
         self.chat_session.add_user_text(text)
-        self.mount(
+        text = "\n".join(textwrap.wrap(text, width=self.wrap_width))
+        self.query_one("#chat_view").mount(
             DisplayUserMessage(
                 content=text,
                 classes="user_text_container",
@@ -332,9 +366,10 @@ class PoodleTui(App):
     @on(Input.Submitted, "#file_input")
     def add_file_input(self) -> None:
         input = self.query_one("#file_input", TextInput)
-        file_dir = input.value
-        self.add_chat_file(self.chat_session, file_dir)
-        self.mount(
+        file_dir: str = input.value
+        self.add_chat_file(file_dir)
+        file_dir = "\n".join(textwrap.wrap(file_dir, width=self.wrap_width))
+        self.query_one("#chat_view").mount(
             DisplayUserMessage(
                 content=file_dir,
                 icon="< 󰛶  ",
@@ -358,8 +393,8 @@ class PoodleTui(App):
         self.poodle_vui.start_recording(stream_write_time)
 
     def action_send(self) -> None:
-        self.mount(DisplayMessage("send it", align_horizontal="center", classes="info"))
-        self.send_messages(self.chat_session)
+        # self.mount(DisplayMessage("send it", align_horizontal="center", classes="info"))
+        self.send_messages()
 
     async def action_toggle_kw_detection(self) -> None:
         if self.poodle_vui.keyword_detection_active:
