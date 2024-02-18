@@ -7,6 +7,7 @@ from textual.widgets import Footer, Static, Input, Label, TextArea, Placeholder
 from textual.reactive import Reactive
 from textual import work
 from textual import on
+from textual.validation import Validator, Length
 from richpixels import Pixels
 from rich.spinner import Spinner
 from rich.progress import Progress, BarColumn
@@ -77,7 +78,11 @@ class RichTextInput(TextArea):
 
 
 class TextInput(Input):
-    BINDINGS = [("escape", "close", "close"), ("ctrl+d", "close", "close")]
+    BINDINGS = [
+        ("escape", "close", "close"),
+        ("ctrl+d", "close", "close"),
+        ("ctrl+s", "submit", "submit"),
+    ]
 
     def action_close(self):
         self.remove()
@@ -206,26 +211,27 @@ class PoodleTui(App):
     def compose(self) -> ComposeResult:
         model = config.CHAT_MODEL
         chat_view = VerticalScroll(id="chat_view")
-        image = Pixels.from_image_path("bulbasaur.png")
+        image = Pixels.from_image_path("images/bulbasaur.png")
+        value_style = "cyan"
         yield Container(
             DisplayMessage(self.welcome(), id="welcome"),
             Static(image, id="emote"),
             Container(
                 Container(
                     Label("Model: "),
-                    Label(f"{model}"),
+                    Label(f"[{value_style}]{model}[/{value_style}]"),
                     classes="infoline",
                     id="model",
                 ),
                 Container(
                     Label("Agent: "),
-                    Label(f"{config.AGENT_PATH}"),
+                    Label(f"[{value_style}]{config.AGENT_PATH}[/{value_style}]"),
                     classes="infoline",
                     id="agent",
                 ),
                 Container(
                     Label("Voice: "),
-                    Label(f"{config.VOICE}"),
+                    Label(f"[{value_style}]{config.VOICE}[/{value_style}]"),
                     classes="infoline",
                     id="voice_status",
                 ),
@@ -237,19 +243,19 @@ class PoodleTui(App):
                 # ),
                 Container(
                     Label("keyword: "),
-                    Label(f"{config.KEYWORD}"),
+                    Label(f"[{value_style}]{config.KEYWORD}[/{value_style}]"),
                     classes="infoline",
                     id="keyword_infoline",
                 ),
                 Container(
                     Label("temperature: "),
-                    Label(f"{config.TEMPERATURE}"),
+                    Label(f"[{value_style}]{config.TEMPERATURE}[/{value_style}]"),
                     classes="infoline",
                     id="temperature",
                 ),
                 Container(
                     Label("presence penalty: "),
-                    Label(f"{config.PRESENCE_PENALTY}"),
+                    Label(f"[{value_style}]{config.PRESENCE_PENALTY}[/{value_style}]"),
                     classes="infoline",
                     id="presence_penalty",
                 ),
@@ -270,13 +276,9 @@ class PoodleTui(App):
         return w
 
     def isSpeak(self):
-        if (
-            config.SPEAK is not None
-            or config.SPEAK != ""
-            or config.SPEAK.lower() != "none"
-        ):
-            return True
-        return False
+        if config.SPEAK.lower() != "cloud" or config.SPEAK.lower() != "local":
+            return False
+        return True
 
     @work
     async def log_response(self, resp, chat_utils) -> None:
@@ -300,14 +302,13 @@ class PoodleTui(App):
             )
         )
         if not self.isSpeak():
-            content_md = Markdown(str(content_wrapped))
+            content_md = Markdown(str(content_wrapped), style="medium_orchid3")
             self.query_one("#chat_view").mount(
                 DisplayAssistantMessage(
                     content=content_md,
                     classes="assistant_message_container",
-                    icon=" 󰚩 >",
-                    icon_style="purple4",
-                    content_style="bright_magenta",
+                    icon=" 󰚩  >",
+                    icon_style="bright_magenta",
                 )
             )
         else:
@@ -315,9 +316,9 @@ class PoodleTui(App):
                 DisplayAssistantMessage(
                     content=content_wrapped,
                     classes="assistant_message_container",
-                    icon=" 󰚩 >",
-                    icon_style="purple4",
-                    content_style="bright_magenta",
+                    icon=" 󰚩 󰔊 >",
+                    icon_style="bright_magenta",
+                    content_style="medium_orchid3",
                 )
             )
 
@@ -344,7 +345,7 @@ class PoodleTui(App):
         self.query_one("#chat_view").mount(
             DisplayUserMessage(
                 content=file_content,
-                icon="< 󰛶  ",
+                icon="<󰛶  ",
                 classes="user-file",
                 icon_style="green1",
             )
@@ -378,7 +379,7 @@ class PoodleTui(App):
             self.query_one("#chat_view").mount(
                 DisplayUserMessage(
                     content=wrapped_text,
-                    icon="< 󰔊 ",
+                    icon="<󰔊  ",
                     classes="user_voice_container",
                     icon_style="blue",
                     content_style="cyan1",
@@ -419,47 +420,57 @@ class PoodleTui(App):
         )
 
     @on(Input.Submitted, "#text_input")
-    def add_text_input(self) -> None:
-        input = self.query_one("#text_input", TextInput)
-        text: str = input.value
-        self.chat_session.add_user_text(text)
-        text = "\n".join(textwrap.wrap(text, width=self.wrap_width))
-        self.query_one("#chat_view").mount(
-            DisplayUserMessage(
-                content=text,
-                classes="user_text_container",
-                icon="< 󰯓  ",
-                icon_style="blue",
-                content_style="cyan3",
+    def add_text_input(self, event: Input.Submitted) -> None:
+        if event.validation_result.is_valid:
+            input = self.query_one("#text_input", TextInput)
+            text: str = input.value
+            self.chat_session.add_user_text(text)
+            text = "\n".join(textwrap.wrap(text, width=self.wrap_width))
+            self.query_one("#chat_view").mount(
+                DisplayUserMessage(
+                    content=text,
+                    classes="user_text_container",
+                    icon="<󰯓  ",
+                    icon_style="blue",
+                    content_style="cyan3",
+                )
             )
-        )
-        input.clear()
+            input.remove()
+        pass
 
     @on(Input.Submitted, "#file_input")
-    def add_file_input(self) -> None:
-        self.status["reading"].display = True
-        input = self.query_one("#file_input", TextInput)
-        file_dir: str = input.value
-        self.add_chat_file(file_dir)
-        file_dir = "\n".join(textwrap.wrap(file_dir, width=self.wrap_width))
-        self.query_one("#chat_view").mount(
-            DisplayUserMessage(
-                content=file_dir,
-                icon="< 󰛶  ",
-                classes="user-file",
-                icon_style="blue",
+    def add_file_input(self, event: Input.Submitted) -> None:
+        if event.validation_result.is_valid:
+            self.status["reading"].display = True
+            input = self.query_one("#file_input", TextInput)
+            file_dir: str = input.value
+            self.add_chat_file(file_dir)
+            file_dir = "\n".join(textwrap.wrap(file_dir, width=self.wrap_width))
+            self.query_one("#chat_view").mount(
+                DisplayUserMessage(
+                    content=file_dir,
+                    icon="<󰛶  ",
+                    classes="user-file",
+                    icon_style="blue",
+                )
             )
-        )
-        input.clear()
+            input.remove()
+        pass
 
     def action_input_file(self) -> None:
-        new_input = TextInput(id="file_input")
+        new_input = TextInput(
+            id="file_input", validate_on=["submitted", "changed"], valid_empty=False
+        )
         new_input.border_title = "File"
         self.mount(new_input)
         new_input.focus()
 
     def action_input_text(self) -> None:
-        new_input = TextInput(id="text_input")
+        new_input = TextInput(
+            id="text_input",
+            validators=[Length(minimum=5)],
+            valid_empty=False,
+        )
         new_input.border_title = "Text"
         self.app.mount(new_input)
         new_input.focus()

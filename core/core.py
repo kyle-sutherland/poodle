@@ -17,13 +17,9 @@ class Poodle:
         self.chat_session: ChatSession
 
     def isSpeak(self):
-        if (
-            self.config.SPEAK is not None
-            or self.config.SPEAK != ""
-            or self.config.SPEAK.lower() != "none"
-        ):
-            return True
-        return False
+        if self.config.SPEAK.lower != "cloud" or self.config.SPEAK.lower() != "local":
+            return False
+        return True
 
     def get_session(self) -> ChatSession:
         return self.chat_session
