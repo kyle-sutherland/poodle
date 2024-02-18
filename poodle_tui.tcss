@@ -1,15 +1,23 @@
 DisplayMessage { 
+    box-sizing: content-box;
+    text-align: left;
+    }
+
+DisplayUserMessage {
     grid-size: 2 1; 
     grid-columns: auto;
     layout: grid;
     box-sizing: content-box;
-    border: solid;
-    text-align: left;
-    }
-
-SpinnerWidget {
-  dock: top;
 }
+
+DisplayAssistantMessage {
+    grid-size: 2 1; 
+    grid-columns: auto;
+    layout: grid;
+    box-sizing: content-box;
+    text-align: left;
+}
+
 
 TextInput {
   offset: 0 -2;
@@ -18,15 +26,17 @@ TextInput {
 
 #header{
   layout: horizontal;
-  height: 1fr;
+  height: 14;
 }
 
 #chat_view{
-  height: 3fr;
+  padding: 0 24;
 }
 
 #info{
-  width: 3fr;
+  layout: vertical;
+  width: 1fr;
+  margin: 1 4 0 0;
 }
 
 #icons {
@@ -34,8 +44,8 @@ TextInput {
 }
 
 #welcome {
-    padding: 0 1 2 5;
-    width: 2fr;
+    padding: 1 0 2 6;
+    width: 1fr;
 }
 
 #assistant_messages {
@@ -43,4 +53,10 @@ TextInput {
 }
 #user_messages {
     padding: 1 1;
+}
+
+.infoline {
+  layout: horizontal;
+  padding: 0;
+  height: 1;
 }

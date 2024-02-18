@@ -185,14 +185,16 @@ class PoodleTui(App):
         self.wrap_width = 92
 
     def on_mount(self):
-        self.spinners = {
+        self.status = {
             "transcribing": SpinnerWidget("dots", "blue", "Transcribing..."),
             "vocalizing": SpinnerWidget("dots", "yellow", "Vocalizing..."),
             "replying": SpinnerWidget("dots", "bright_magenta", "Replying..."),
+            "listening": Label("Listening"),
+            "ready": Label("Ready"),
         }
-        for spinner in self.spinners:
-            self.mount(self.spinners[spinner])
-            self.spinners[spinner].visible = False
+        for status in self.status:
+            self.mount(self.status[status])
+            self.status[status].visible = False
         if config.SOUNDS:
             # notification-sound-7062.mp3
             playMp3Sound("./sounds/ready.mp3")
@@ -200,12 +202,59 @@ class PoodleTui(App):
     auto_send = Reactive(False)
 
     def compose(self) -> ComposeResult:
+        model = config.CHAT_MODEL
+        chat_view = VerticalScroll(id="chat_view")
         yield Container(
             DisplayMessage(self.welcome(), id="welcome"),
-            Placeholder(id="info"),
+            Container(
+                Container(
+                    Label("Model: "),
+                    Label(f"{model}"),
+                    classes="infoline",
+                    id="model",
+                ),
+                Container(
+                    Label("Agent: "),
+                    Label(f"{config.AGENT_PATH}"),
+                    classes="infoline",
+                    id="agent",
+                ),
+                Container(
+                    Label("Voice: "),
+                    Label(f"{config.VOICE}"),
+                    classes="infoline",
+                    id="voice_status",
+                ),
+                # container(
+                #     label("kw detection: "),
+                #     label(f"{self.poodle_vui.keyword_detection_active}"),
+                #     classes="infoline",
+                #     id="kwd_status",
+                # ),
+                Container(
+                    Label("keyword: "),
+                    Label(f"{config.KEYWORD}"),
+                    classes="infoline",
+                    id="keyword_infoline",
+                ),
+                Container(
+                    Label("temperature: "),
+                    Label(f"{config.TEMPERATURE}"),
+                    classes="infoline",
+                    id="temperature",
+                ),
+                Container(
+                    Label("presence penalty: "),
+                    Label(f"{config.PRESENCE_PENALTY}"),
+                    classes="infoline",
+                    id="presence_penalty",
+                ),
+                Container(Label("Status: "), classes="infoline", id="status"),
+                id="info",
+            ),
             id="header",
         )
-        yield VerticalScroll(id="chat_view")
+        yield chat_view
         yield Footer()
 
     def welcome(self):
@@ -235,7 +284,7 @@ class PoodleTui(App):
 
     @work(exclusive=True)
     async def print_response(self, content: str) -> None:
-        self.spinners["replying"].visible = False
+        self.status["replying"].visible = False
         content_wrapped = "\n".join(
             textwrap.wrap(
                 content,
@@ -253,7 +302,8 @@ class PoodleTui(App):
                     content=content_md,
                     classes="assistant_message_container",
                     icon=" 󰚩 >",
-                    icon_style="green",
+                    icon_style="purple4",
+                    content_style="bright_magenta",
                 )
             )
         else:
@@ -262,7 +312,8 @@ class PoodleTui(App):
                     content=content_wrapped,
                     classes="assistant_message_container",
                     icon=" 󰚩 >",
-                    icon_style="green",
+                    icon_style="purple4",
+                    content_style="bright_magenta",
                 )
             )
 
@@ -278,7 +329,7 @@ class PoodleTui(App):
 
     @work(thread=True)
     async def send_messages(self) -> None:
-        self.spinners["replying"].visible = True
+        self.status["replying"].visible = True
         resp = await self.chat_session.send_chat_request()
         await self.handle_response(resp)
 
@@ -291,13 +342,10 @@ class PoodleTui(App):
             self.poodle_vui.process_transcriptions()
             transcriptions: list = self.poodle_vui.get_transcriptions()
             trans_text = self.chat_utils.extract_trans_text(transcriptions)
-            wrapped_text = "\n".join(
-                textwrap.wrap(trans_text[0], width=self.wrap_width)
-            )
             if len(trans_text) == 0:
                 if config.SOUNDS:
                     playMp3Sound("./sounds/badcopy.mp3")
-                self.mount(
+                self.query_one("#chat_view").mount(
                     DisplayMessage(
                         content=" I didn't hear you",
                         classes="local",
@@ -306,15 +354,17 @@ class PoodleTui(App):
                 ef.silence.clear()
                 return  # Exit the function early if there's no transcription
             if config.SOUNDS:
-
                 playMp3Sound("./sounds/listening.mp3")
+            wrapped_text = "\n".join(
+                textwrap.wrap(trans_text[0], width=self.wrap_width)
+            )
             self.query_one("#chat_view").mount(
                 DisplayUserMessage(
                     content=wrapped_text,
                     icon="< 󰔊 ",
                     classes="user_voice_container",
                     icon_style="blue",
-                    content_style="bright_magenta",
+                    content_style="cyan3",
                 )
             )
             if len(str(transcriptions)) != 0:
@@ -323,6 +373,7 @@ class PoodleTui(App):
                 self.action_send()
 
     def action_print_keyword_message(self, keyword, data, stream_write_time) -> None:
+        self.status["listening"].display = True
         self.query_one("#chat_view").mount(
             DisplayMessage(
                 f"\n This is {keyword}. I am listening.",
