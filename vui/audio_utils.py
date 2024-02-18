@@ -266,7 +266,7 @@ class TextToSpeech:
     @yaspin(text="Speaking...", color="yellow")
     def stream_voice(self, text, voice):
         response = self.tts.speech.create(
-            model=self.model, voice=voice, input=text, response_format="mp3", speed=1.1
+            model=self.model, voice=voice, input=text, response_format="mp3", speed=1
         )
         audio_data = BytesIO(response.content)
         audio_segment = AudioSegment.from_file(audio_data, format="mp3")

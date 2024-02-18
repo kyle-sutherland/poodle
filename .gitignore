@@ -25,3 +25,4 @@ src/body_transcriptions
 src/conversations
 src/api_keys/keys
 src/api_keys/org
+vui/body_transcriptions

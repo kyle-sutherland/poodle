@@ -169,8 +169,8 @@ class PoodleTui(App):
         self.poodle.run()
         self.chat_session = self.poodle.get_session()
         self.kw_listeners = [
-            self.action_input_speech,
             self.action_print_keyword_message,
+            self.action_input_speech,
         ]
         self.poodle_vui = Vui(config.KEYWORD, self.kw_listeners, [])
         self.transcriber = self.poodle_vui.transcriber
@@ -193,11 +193,11 @@ class PoodleTui(App):
             "ready": Label("Ready"),
         }
         for status in self.status:
-            self.mount(self.status[status])
-            self.status[status].visible = False
+            self.query_one("#status").mount(self.status[status])
+            self.status[status].display = False
         if config.SOUNDS:
             # notification-sound-7062.mp3
-            playMp3Sound("./sounds/ready.mp3")
+            playMp3Sound("sounds/ready.mp3")
 
     auto_send = Reactive(False)
 
@@ -284,7 +284,7 @@ class PoodleTui(App):
 
     @work(exclusive=True)
     async def print_response(self, content: str) -> None:
-        self.status["replying"].visible = False
+        self.status["replying"].display = False
         content_wrapped = "\n".join(
             textwrap.wrap(
                 content,
@@ -329,13 +329,22 @@ class PoodleTui(App):
 
     @work(thread=True)
     async def send_messages(self) -> None:
-        self.status["replying"].visible = True
+        self.status["replying"].display = True
         resp = await self.chat_session.send_chat_request()
         await self.handle_response(resp)
 
     @work
     async def add_chat_file(self, file_dir):
-        await self.chat_session.add_chat_file(file_dir)
+        file_content = await self.chat_session.add_chat_file(file_dir)
+        # file_content_wraped = "\n".join(textwrap.wrap(file_dir, width=self.wrap_width))
+        self.query_one("#chat_view").mount(
+            DisplayUserMessage(
+                content=file_content,
+                icon="< 󰛶  ",
+                classes="user-file",
+                icon_style="green2",
+            )
+        )
 
     def loop_transcription(self) -> None:
         if ef.silence.is_set() and not ef.recording.is_set():
@@ -344,7 +353,7 @@ class PoodleTui(App):
             trans_text = self.chat_utils.extract_trans_text(transcriptions)
             if len(trans_text) == 0:
                 if config.SOUNDS:
-                    playMp3Sound("./sounds/badcopy.mp3")
+                    playMp3Sound("sounds/badcopy.mp3")
                 self.query_one("#chat_view").mount(
                     DisplayMessage(
                         content=" I didn't hear you",
@@ -354,7 +363,7 @@ class PoodleTui(App):
                 ef.silence.clear()
                 return  # Exit the function early if there's no transcription
             if config.SOUNDS:
-                playMp3Sound("./sounds/listening.mp3")
+                playMp3Sound("sounds/listening.mp3")
             wrapped_text = "\n".join(
                 textwrap.wrap(trans_text[0], width=self.wrap_width)
             )
@@ -364,7 +373,7 @@ class PoodleTui(App):
                     icon="< 󰔊 ",
                     classes="user_voice_container",
                     icon_style="blue",
-                    content_style="cyan3",
+                    content_style="cyan1",
                 )
             )
             if len(str(transcriptions)) != 0:
@@ -372,7 +381,10 @@ class PoodleTui(App):
             if self.auto_send:
                 self.action_send()
 
-    def action_print_keyword_message(self, keyword, data, stream_write_time) -> None:
+    @work
+    async def action_print_keyword_message(
+        self, keyword, data, stream_write_time
+    ) -> None:
         self.status["listening"].display = True
         self.query_one("#chat_view").mount(
             DisplayMessage(
@@ -381,7 +393,7 @@ class PoodleTui(App):
             )
         )
         if config.SOUNDS:
-            playMp3Sound("./sounds/listening.mp3")
+            playMp3Sound("sounds/listening.mp3")
         if config.SPEAK.lower() == "cloud":
             if self.tts.is_audio_playing():
                 self.tts.stop_audio()
@@ -389,6 +401,7 @@ class PoodleTui(App):
             self.tts_local.stop_audio()
         else:
             pass
+        self.status["listening"].display = False
 
     def action_toggle_voice(self) -> None:
         self.query_one("#chat_view").mount(
@@ -410,6 +423,7 @@ class PoodleTui(App):
                 classes="user_text_container",
                 icon="< 󰯓  ",
                 icon_style="blue",
+                content_style="cyan3",
             )
         )
         input.clear()
@@ -432,25 +446,29 @@ class PoodleTui(App):
 
     def action_input_file(self) -> None:
         new_input = TextInput(id="file_input")
+        new_input.border_title = "File"
         self.mount(new_input)
         new_input.focus()
 
     def action_input_text(self) -> None:
         new_input = TextInput(id="text_input")
+        new_input.border_title = "Text"
         self.app.mount(new_input)
         new_input.focus()
 
-    def action_input_speech(self, keyword, data, stream_write_time) -> None:
+    @work
+    async def action_input_speech(self, keyword, data, stream_write_time) -> None:
         self.poodle_vui.start_recording(stream_write_time)
 
     def action_send(self) -> None:
         # self.mount(DisplayMessage("send it", align_horizontal="center", classes="info"))
         self.send_messages()
 
+    @work
     async def action_toggle_kw_detection(self) -> None:
         if self.poodle_vui.keyword_detection_active:
             self.poodle_vui.stop_keyword_detection()
-            self.mount(
+            self.query_one("#chat_view").mount(
                 DisplayMessage(
                     "Keyword detection stopped.",
                     classes="local",
@@ -458,7 +476,7 @@ class PoodleTui(App):
             )
         else:
             await self.poodle_vui.start_keyword_detection()
-            self.mount(
+            self.query_one("#chat_view").mount(
                 DisplayMessage(
                     "Keyword detection started.",
                     classes="local",

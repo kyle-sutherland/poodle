@@ -184,7 +184,9 @@ class ChatSession:
 
     async def add_chat_file(self, file_dir):
         file_str = FileManager.read_file(file_dir)
-        self.messages.add_message("user", f"file: {file_str}")
+        if not file_str.startswith("Error"):
+            self.messages.add_message("user", f"file: {file_str}")
+        return file_str
 
     def add_user_text(self, text):
         self.messages.add_message("user", f"text: {text}")

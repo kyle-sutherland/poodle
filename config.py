@@ -23,7 +23,7 @@ LOCAL_TRANSCRIBER_MODEL = "base"  # available models given by whisper.available_
 # Determines whether the response should be streamed or not
 # text-to-speech valid options: LOCAL, cloud, NONE
 STREAM_RESPONSE = False
-SPEAK = "cloud"
+SPEAK = False
 VOICE = "shimmer"
 AGENT_PATH = "agents/standard.json"
 CHAT_MODEL = "gpt-4-1106-preview"
