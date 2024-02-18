@@ -1,0 +1,52 @@
+{
+  "gpt-3.5-turbo-16k": {
+    "name": "gpt-3.5-turbo-16k",
+    "limit_thresh": 0.4,
+    "token_limit": 16384
+  },
+  "gpt-3.5-turbo-instruct": {
+    "name": "gpt-3.5-turbo-instruct",
+    "limit_thresh": 0.4,
+    "token_limit": 4096
+  },
+  "gpt-3.5-turbo": {
+    "name": "gpt-3.5-turbo",
+    "limit_thresh": 0.4,
+    "token_limit": 4096
+  },
+  "gpt-3.5-turbo-1106": {
+    "name": "gpt-3.5-turbo-1106",
+    "limit_thresh": 0.4,
+    "token_limit": 16384
+  },
+  "gpt-4": {
+    "name": "gpt-4",
+    "limit_thresh": 0.4,
+    "token_limit": 8192
+  },
+  "gpt-4-vision-preview": {
+    "name": "gpt-4-vision-preview",
+    "limit_thresh": 0.4,
+    "token_limit": 128000
+  },
+  "gpt-4-1106-preview": {
+    "name": "gpt-4-1106-preview",
+    "limit_thresh": 0.4,
+    "token_limit": 128000
+  },
+  "gpt-4-32k": {
+    "name": "gpt-4-32k",
+    "limit_thresh": 0.4,
+    "token_limit": 32768
+  },
+  "gpt-4-0613": {
+    "name": "gpt-4-0613",
+    "limit_thresh": 0.4,
+    "token_limit": 8192
+  },
+  "gpt-4-32k-0613": {
+    "name": "gpt-4-32k-0613",
+    "limit_thresh": 0.4,
+    "token_limit": 32768
+  }
+}

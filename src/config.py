@@ -8,13 +8,13 @@ PYAUDIO_FRAMES_PER_BUFFER = 8000  # Number of frames per buffer
 ENABLE_PRINT_PROMPT = False
 # Logging configuration flags
 ENABLE_PERFORMANCE_LOG = True  # Enable performance logging
-ENABLE_ALL_PARTIAL_RESULT_LOG = True  # Log all partial results
+ENABLE_ALL_PARTIAL_RESULT_LOG = False  # Log all partial results
 ENABLE_ACTIVE_SPEECH_LOG = False  # Log active speech
 # Paths for various data storage
-PATH_PROMPT_BODIES_AUDIO = "vui/prompt_bodies_audio/"  # Path to store audio prompts
-TRANSCRIPTION_PATH = "vui/body_transcriptions/"  # Path to store transcriptions
-CONVERSATIONS_PATH = "core/conversations/"  # Path to store conversations
-RESPONSE_LOG_PATH = "core/response_log/"  # Path to store response logs
+PATH_PROMPT_BODIES_AUDIO = "prompt_bodies_audio/"  # Path to store audio prompts
+TRANSCRIPTION_PATH = "body_transcriptions/"  # Path to store transcriptions
+CONVERSATIONS_PATH = "conversations/"  # Path to store conversations
+RESPONSE_LOG_PATH = "response_log/"  # Path to store response logs
 
 # Transcription settings
 ONLINE_TRANSCRIBE = False  # Use online transcription service

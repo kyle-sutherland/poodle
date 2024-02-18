@@ -235,8 +235,7 @@ def main():
         convo = chat_session.messages
         timestamp = FileManager.get_datetime_string()
         FileManager.save_json(
-            f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json",
-            convo.get_messages(),
+            f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json", convo
         )
         console.print("\n\nGoodbye.")
         keyword_detector.close()
