@@ -20,6 +20,7 @@ pytorch_model.bin
 pyrightconfig.json
 agents/**
 core/conversations
+core/response_log
 src/body_transcriptions
 src/conversations
 src/api_keys/keys
