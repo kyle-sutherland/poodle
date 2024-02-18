@@ -1,6 +1,5 @@
 DisplayMessage { 
     box-sizing: content-box;
-    text-align: left;
     }
 
 DisplayUserMessage {
@@ -15,7 +14,6 @@ DisplayAssistantMessage {
     grid-columns: auto;
     layout: grid;
     box-sizing: content-box;
-    text-align: left;
 }
 
 
@@ -30,7 +28,11 @@ TextInput {
 }
 
 #chat_view{
-  padding: 0 24;
+  padding: 0 18;
+}
+
+#emote {
+  width: 43;
 }
 
 #info{
@@ -44,7 +46,7 @@ TextInput {
 }
 
 #welcome {
-    padding: 1 0 2 6;
+    padding: 1 0 2 0;
     width: 1fr;
 }
 
@@ -55,8 +57,15 @@ TextInput {
     padding: 1 1;
 }
 
+.info_value {
+  padding: 0 2;
+}
+
 .infoline {
-  layout: horizontal;
+  layout: grid;
+  grid-size: 2 1;
+  grid-columns: 1fr 1fr;
   padding: 0;
   height: 1;
+  width: 100%;
 }

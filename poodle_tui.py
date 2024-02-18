@@ -7,7 +7,7 @@ from textual.widgets import Footer, Static, Input, Label, TextArea, Placeholder
 from textual.reactive import Reactive
 from textual import work
 from textual import on
-from rich.text import Text
+from richpixels import Pixels
 from rich.spinner import Spinner
 from rich.progress import Progress, BarColumn
 from rich.highlighter import ReprHighlighter
@@ -90,7 +90,7 @@ class DisplayMessage(Static):
         classes="",
         id: str | None = None,
         content_style="",
-        align_horizontal="left",
+        align_horizontal="center",
     ):
         super().__init__()
         if id is not None:
@@ -140,6 +140,7 @@ class DisplayAssistantMessage(DisplayMessage):
     def __init__(self, icon: str, icon_style: str, **kwargs):
         super().__init__(**kwargs)
         self.icon = icon
+        self.styles.align_horizontal = "left"
         self.icon_style = icon_style
 
     def compose(self):
@@ -182,13 +183,14 @@ class PoodleTui(App):
         self.chat_utils = self.poodle.chat_utils
         await self.poodle_vui.start_keyword_detection()
         self.transcriber_loop = self.set_interval(0.1, self.loop_transcription)
-        self.wrap_width = 92
+        self.wrap_width = 112
 
     def on_mount(self):
         self.status = {
             "transcribing": SpinnerWidget("dots", "blue", "Transcribing..."),
             "vocalizing": SpinnerWidget("dots", "yellow", "Vocalizing..."),
             "replying": SpinnerWidget("dots", "bright_magenta", "Replying..."),
+            "reading": SpinnerWidget("dots", "green", "Reading"),
             "listening": Label("Listening"),
             "ready": Label("Ready"),
         }
@@ -204,8 +206,10 @@ class PoodleTui(App):
     def compose(self) -> ComposeResult:
         model = config.CHAT_MODEL
         chat_view = VerticalScroll(id="chat_view")
+        image = Pixels.from_image_path("bulbasaur.png")
         yield Container(
             DisplayMessage(self.welcome(), id="welcome"),
+            Static(image, id="emote"),
             Container(
                 Container(
                     Label("Model: "),
@@ -342,12 +346,16 @@ class PoodleTui(App):
                 content=file_content,
                 icon="< 󰛶  ",
                 classes="user-file",
-                icon_style="green2",
+                icon_style="green1",
             )
         )
+        self.status["reading"].display = False
 
     def loop_transcription(self) -> None:
+        self.status["transcribing"].display = False
         if ef.silence.is_set() and not ef.recording.is_set():
+            self.status["listening"].display = False
+            self.status["transcribing"].display = True
             self.poodle_vui.process_transcriptions()
             transcriptions: list = self.poodle_vui.get_transcriptions()
             trans_text = self.chat_utils.extract_trans_text(transcriptions)
@@ -401,7 +409,6 @@ class PoodleTui(App):
             self.tts_local.stop_audio()
         else:
             pass
-        self.status["listening"].display = False
 
     def action_toggle_voice(self) -> None:
         self.query_one("#chat_view").mount(
@@ -430,6 +437,7 @@ class PoodleTui(App):
 
     @on(Input.Submitted, "#file_input")
     def add_file_input(self) -> None:
+        self.status["reading"].display = True
         input = self.query_one("#file_input", TextInput)
         file_dir: str = input.value
         self.add_chat_file(file_dir)
