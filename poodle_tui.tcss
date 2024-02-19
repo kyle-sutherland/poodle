@@ -1,15 +1,15 @@
-DisplayMessage { 
+Message { 
     box-sizing: content-box;
     }
 
-DisplayUserMessage {
+UserMessage {
     grid-size: 2 1; 
     grid-columns: auto;
     layout: grid;
     box-sizing: content-box;
 }
 
-DisplayAssistantMessage {
+AssistantMessage {
     grid-size: 2 1; 
     grid-columns: auto;
     layout: grid;
@@ -24,7 +24,7 @@ TextInput {
 
 #header{
   layout: horizontal;
-  height: 14;
+  height: 16;
 }
 
 #chat_view{
@@ -32,7 +32,7 @@ TextInput {
 }
 
 #emote {
-  width: 43;
+  width: 36;
 }
 
 #info{

@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 
 from openai.types.chat import ChatCompletion
-import config
+from config import Configurator
 import json
 
 
@@ -60,9 +60,9 @@ class FileManager:
             return {"error": e}
 
     @staticmethod
-    def delete_transcription(file_name: str):
+    def delete_transcription(file_name: str, path):
         """Delete a transcription file."""
-        file_path = os.path.join(config.TRANSCRIPTION_PATH, file_name)
+        file_path = os.path.join(path, file_name)
         os.remove(file_path)
 
     @staticmethod
@@ -75,19 +75,19 @@ class FileManager:
             logging.error(e)
 
     @staticmethod
-    def mark_as_read(file_name: str):
+    def mark_as_read(file_name: str, path: str):
         """Mark a transcription file as read by renaming it."""
-        original_file_path = os.path.join(config.TRANSCRIPTION_PATH, file_name)
-        marked_file_path = os.path.join(config.TRANSCRIPTION_PATH, f"_read_{file_name}")
+        original_file_path = os.path.join(path, file_name)
+        marked_file_path = os.path.join(path, f"_read_{file_name}")
         os.rename(original_file_path, marked_file_path)
 
     @staticmethod
-    def read_transcriptions(directory: str) -> list:
+    def read_transcriptions(path: str) -> list:
         """Read transcriptions from a directory."""
         transcriptions = []
-        for file in os.listdir(directory):
+        for file in os.listdir(path):
             if not file.startswith("_read_"):
-                file_path = os.path.join(directory, file)
+                file_path = os.path.join(path, file)
                 if os.path.exists(file_path):
                     if os.stat(file_path).st_size != 0:
                         with open(file_path, "r") as f:
@@ -96,7 +96,7 @@ class FileManager:
                                 transcriptions.append(transcription)
                             except ValueError as e:
                                 logging.error(f"Error reading {file_path}: {e}")
-                        FileManager.mark_as_read(file)
+                        FileManager.mark_as_read(file, path)
                     else:
                         logging.error(f"File {file_path} is empty.")
                 else:

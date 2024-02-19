@@ -30,7 +30,7 @@ def handle_response(resp, chat):
 def log_response(self, resp, chat_utils):
     tstamp = FileManager.get_datetime_string()
     FileManager.save_json(
-        f"{config.RESPONSE_LOG_PATH}response_{tstamp}.json",
+        f"{self.config.response_log_path}response_{tstamp}.json",
         chat_utils.chat_completion_to_dict(resp),
     )
 
@@ -92,7 +92,7 @@ def chat_completion_to_dict(response):
     return chat_dict
 
 
-@dataclass(frozen=True, order=True)
+@dataclass(unsafe_hash=True, order=True)
 class ChatContent:
     messages: list
 
@@ -172,6 +172,9 @@ class ChatSession:
             "speech-to-text (trans) or text input the user has typed (text). Transcribed text may contain words "
             "that the transcriber has misheard. if it is prepended with file, the message is the contents of a file"
             "the use wants you to read."
+        )
+        self.add_system_message(
+            "You are encouraged to prepend your messages with the following: '@n@' where n is a number from 0 to 6 to correspond with an emote. The numbers correspond as follows: 0: neutral, 1:confused, 2:excited, 3:happy, 4:love, 5:angry, 6:dead. for example: '@1@what was that?'. This prepend must begin the message in order for it to work."
         )
 
     def add_user_trans(self, trans):

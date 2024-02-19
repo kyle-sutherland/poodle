@@ -1,12 +1,14 @@
 {
-  "STREAM_RESPONSE": false,
-  "SPEAK": "NONE",
-  "VOICE": "shimmer",
-  "AGENT_PATH": "agents/standard.json",
-  "CHAT_MODEL": "gpt-4-1106-preview",
-  "PRESENCE_PENALTY": 1.0,
-  "TEMPERATURE": 1.0,
-  "SOUNDS": false,
-  "KEYWORD": "computer",
-  "LANG": "english-us"
+  "stream_response": false,
+  "speak": "none",
+  "voice": "shimmer",
+  "agent_path": "agents/standard.json",
+  "chat_model": "gpt-4-1106-preview",
+  "local_transcriber_model": "base",
+  "lang": "english-us",
+  "keyword": "computer",
+  "online_transcribe": false,
+  "presence_penalty": 1.0,
+  "temperature": 1.0,
+  "sounds": true
 }
