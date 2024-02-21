@@ -19,7 +19,7 @@ class Poodle:
         )
         self.chat_session: ChatSession
 
-    def isSpeak(self) -> bool:
+    def isSpeak(self):
         if self.config.speak.lower != "cloud" or self.config.speak.lower() != "local":
             return False
         return True

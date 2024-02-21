@@ -1,3 +1,7 @@
+Screen {
+  layout: horizontal;
+}
+
 Message { 
     box-sizing: content-box;
     }
@@ -22,13 +26,15 @@ TextInput {
   dock: bottom;
 }
 
-#header{
-  layout: horizontal;
-  height: 16;
+#extrapane{
+  layout: vertical;
+  width: 2fr;
 }
 
 #chat_view{
-  padding: 0 18;
+  padding: 0 0;
+  layout: vertical;
+  width: 7fr;
 }
 
 #emote {

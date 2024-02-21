@@ -1,13 +1,7 @@
 # poodle_tui.py
-from re import M
 import textwrap
-import time
 from typing import cast
 
-from config import Configurator
-from core.core import Poodle
-from core.file_manager import FileManager
-import event_flags as ef
 import pyfiglet
 from rich.console import RenderableType
 from rich.console import RenderableType
@@ -22,10 +16,14 @@ from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Container, VerticalScroll
 from textual.reactive import Reactive
-from textual.validation import Length, Validator
-from textual.widget import Widget
+from textual.validation import Length
 from textual.widgets import Footer, Input, Label, Placeholder, Static, TextArea
 from textual.widgets import Markdown
+
+from config import Configurator
+from core.core import Poodle
+from core.file_manager import FileManager
+import event_flags as ef
 from vui.audio_utils import playMp3Sound
 from vui.vui import Vui
 
@@ -183,14 +181,27 @@ class PoodleTui(App):
         ("f", "input_file", "parse file"),
         ("ctrl+q", "quit", "quit"),
         ("e", "incr_emote", "increment emote"),
+        ("o", "toggle_sounds", "sounds"),
     ]
 
+    images = [
+        Pixels.from_image_path("images/glyphs0.png"),
+        Pixels.from_image_path("images/glyphs1.png"),
+        Pixels.from_image_path("images/glyphs2.png"),
+        Pixels.from_image_path("images/glyphs3.png"),
+        Pixels.from_image_path("images/glyphs4.png"),
+        Pixels.from_image_path("images/glyphs5.png"),
+        Pixels.from_image_path("images/glyphs6.png"),
+    ]
+
+    config = Configurator()
+
     async def on_load(self):
-        self.config = Configurator()
         self.config.load_configurations()
         self.poodle = Poodle(self.config)
         self.poodle.run()
         self.chat_session = self.poodle.get_session()
+        self.chat_utils = self.poodle.chat_utils
         self.kw_listeners = [
             self.kwl_print_keyword_message,
             self.kwl_input_speech,
@@ -202,7 +213,6 @@ class PoodleTui(App):
         self.tts_local = self.poodle_vui.tts_local
         ef.silence.clear()
         ef.speaking.clear()
-        self.chat_utils = self.poodle.chat_utils
         await self.poodle_vui.start_keyword_detection()
         self.transcriber_loop = self.set_interval(0.1, self.loop_transcription)
         self.wrap_width = 112
@@ -222,80 +232,101 @@ class PoodleTui(App):
         if self.config.sounds:
             # notification-sound-7062.mp3
             self.run_worker(playMp3Sound("sounds/ready.mp3"))
+        self.query_one("#chat_view").mount(Message(self.welcome()))
 
-    # shown_configs = Reactive(config.__getstate__)
-    auto_send = Reactive(False)
-    emote = Reactive(0)
     # 0: neutral, 1:confused, 2:excited, 3:happy, 4:love, 5:angry, 6:dead.
-    # assistant_icons = ["󰚩 ", "󱚟 ", "󱚣 ", "󱜙 ","󱚥" "󱚝 ", "󱚡 "]
+    # assistant_icons = ["󰚩 ", "󱚟 ", "󱚣 ", "󱜙 ","󱚥 " "󱚝 ", "󱚡 "]
     assistant_icons = ["󱙺 ", "󱚠 ", "󱚤 ", "󱜚 ", "󱚦 " "󱚞 ", "󱚢 "]
 
-    images = [
-        Pixels.from_image_path("images/glyphs0.png"),
-        Pixels.from_image_path("images/glyphs1.png"),
-        Pixels.from_image_path("images/glyphs2.png"),
-        Pixels.from_image_path("images/glyphs3.png"),
-        Pixels.from_image_path("images/glyphs4.png"),
-        Pixels.from_image_path("images/glyphs5.png"),
-        Pixels.from_image_path("images/glyphs6.png"),
-    ]
+    auto_send = Reactive(False)
+    emote = Reactive(0)
 
-    def action_incr_emote(self):
-        if self.emote < 6:
-            self.emote = self.emote + 1
-        else:
-            self.emote = 0
+    # model: str
+    # agent_path: str
+    # voice: str
+    # sounds: str
+    # keyword: str
+    # temperature: str
+    # presence_penalty: str
+
+    def config_label_str(self, value) -> str:
+        config_value_style = "cyan"
+        return f"[{config_value_style}]{value}[/{config_value_style}]"
 
     def compose(self) -> ComposeResult:
-        model = self.config.chat_model
+
+        # self.model = self.config.chat_model
+        # self.agent_path = self.config.agent_path
+        # self.voice = self.config.voice
+        # self.sounds = str(self.config.sounds)
+        # self.keyword = self.config.keyword
+        # self.temperature = str(self.config.temperature)
+        # self.presence_penalty = str(self.config.presence_penalty)
+
         chat_view = VerticalScroll(id="chat_view")
-        value_style = "cyan"
         yield Container(
             Static(self.images[0], id="emote"),
             Container(
                 Container(
                     Label("Model: "),
-                    Label(f"[{value_style}]{model}[/{value_style}]"),
+                    Label(
+                        self.config_label_str(self.config.chat_model),
+                        id="model_infoline",
+                    ),
                     classes="infoline",
-                    id="model",
                 ),
                 Container(
                     Label("Agent: "),
-                    Label(f"[{value_style}]{self.config.agent_path}[/{value_style}]"),
+                    Label(
+                        self.config_label_str(self.config.agent_path),
+                        id="agent_infoline",
+                    ),
                     classes="infoline",
-                    id="agent",
                 ),
                 Container(
                     Label("Voice: "),
-                    Label(f"[{value_style}]{self.config.voice}[/{value_style}]"),
+                    Label(
+                        self.config_label_str(self.config.voice),
+                        id="voice_infoline",
+                    ),
                     classes="infoline",
-                    id="voice_status",
+                ),
+                Container(
+                    Label("Sounds: "),
+                    Label(
+                        self.config_label_str(self.config.sounds),
+                        id="sounds_infoline",
+                    ),
+                    classes="infoline",
                 ),
                 Container(
                     Label("keyword: "),
-                    Label(f"[{value_style}]{self.config.keyword}[/{value_style}]"),
+                    Label(
+                        self.config_label_str(self.config.keyword),
+                        id="keyword_infoline",
+                    ),
                     classes="infoline",
-                    id="keyword_infoline",
                 ),
                 Container(
                     Label("temperature: "),
-                    Label(f"[{value_style}]{self.config.temperature}[/{value_style}]"),
+                    Label(
+                        self.config_label_str(self.config.temperature),
+                        id="temperature_infoline",
+                    ),
                     classes="infoline",
-                    id="temperature",
                 ),
                 Container(
                     Label("presence penalty: "),
                     Label(
-                        f"[{value_style}]{self.config.presence_penalty}[/{value_style}]"
+                        self.config_label_str(self.config.presence_penalty),
+                        id="presence_penalty",
                     ),
                     classes="infoline",
-                    id="presence_penalty",
                 ),
                 Container(Label("Status: "), classes="infoline", id="status"),
                 id="info",
             ),
-            Message(self.welcome(), id="welcome"),
-            id="header",
+            id="extrapane",
         )
         yield chat_view
         yield Footer()
@@ -314,6 +345,11 @@ class PoodleTui(App):
         if self.config.speak.lower() != "cloud" or self.config.speak.lower() != "local":
             return False
         return True
+
+    def watch_emote(self):
+        e = self.emote
+        img = self.images[e]
+        self.query_one("#emote", Static).update(img)
 
     @work
     async def log_response(self, resp, chat_utils) -> None:
@@ -408,6 +444,7 @@ class PoodleTui(App):
                     Message(
                         content=" I didn't hear you",
                         classes="local",
+                        content_style="bright_magenta",
                     )
                 )
                 ef.silence.clear()
@@ -431,6 +468,21 @@ class PoodleTui(App):
             if self.auto_send:
                 self.action_send()
 
+    # keyword listeners
+    @work
+    async def kwl_input_speech(self, keyword, data, stream_write_time) -> None:
+        self.poodle_vui.start_recording(stream_write_time)
+
+    def action_input_file(self) -> None:
+        new_input = TextInput(
+            id="file_input",
+            valid_empty=False,
+            validators=[Length(minimum=2)],
+        )
+        new_input.border_title = "File"
+        self.mount(new_input)
+        new_input.focus()
+
     @work
     async def kwl_print_keyword_message(self, keyword, data, stream_write_time) -> None:
         self.status["listening"].display = True
@@ -438,6 +490,7 @@ class PoodleTui(App):
             Message(
                 f"\n This is {keyword}. I am listening.",
                 classes="local",
+                content_style="bright_magenta",
             )
         )
         if self.config.sounds:
@@ -449,38 +502,6 @@ class PoodleTui(App):
             self.tts_local.stop_audio()
         else:
             pass
-
-    def action_toggle_voice(self) -> None:
-        self.query_one("#chat_view").mount(
-            Message(
-                f"voice is set to {self.config.speak}",
-                classes="local",
-            )
-        )
-
-    @work
-    async def action_print_keyword_message(self) -> None:
-        self.status["listening"].display = True
-        self.query_one("#chat_view").mount(
-            Message(
-                f"\n This is {self.config.keyword}. I am listening.",
-                classes="local",
-            )
-        )
-        if self.config.sounds:
-            self.run_worker(playMp3Sound("sounds/listening.mp3"))
-        if self.config.speak.lower() == "cloud":
-            if self.tts.is_audio_playing():
-                self.tts.stop_audio()
-        if self.config.speak.lower() == "local":
-            self.tts_local.stop_audio()
-        else:
-            pass
-
-    def watch_emote(self):
-        e = self.emote
-        img = self.images[e]
-        self.query_one("#emote", Static).update(img)
 
     @on(Input.Submitted, "#text_input")
     def add_text_input(self, event: Input.Submitted) -> None:
@@ -518,15 +539,31 @@ class PoodleTui(App):
             )
         input.remove()
 
-    def action_input_file(self) -> None:
-        new_input = TextInput(
-            id="file_input",
-            valid_empty=False,
-            validators=[Length(minimum=2)],
+    @work
+    async def action_print_keyword_message(self) -> None:
+        self.status["listening"].display = True
+        self.query_one("#chat_view").mount(
+            Message(
+                f"\n This is {self.config.keyword}. I am listening.",
+                classes="local",
+                content_style="bright_magenta",
+            )
         )
-        new_input.border_title = "File"
-        self.mount(new_input)
-        new_input.focus()
+        if self.config.sounds:
+            self.run_worker(playMp3Sound("sounds/listening.mp3"))
+        if self.config.speak.lower() == "cloud":
+            if self.tts.is_audio_playing():
+                self.tts.stop_audio()
+        if self.config.speak.lower() == "local":
+            self.tts_local.stop_audio()
+        else:
+            pass
+
+    def action_incr_emote(self):
+        if self.emote < 6:
+            self.emote = self.emote + 1
+        else:
+            self.emote = 0
 
     def action_input_text(self) -> None:
         new_input = TextInput(
@@ -542,10 +579,6 @@ class PoodleTui(App):
     async def action_input_speech(self) -> None:
         self.poodle_vui.start_recording()
 
-    @work
-    async def kwl_input_speech(self, keyword, data, stream_write_time) -> None:
-        self.poodle_vui.start_recording(stream_write_time)
-
     def action_send(self) -> None:
         # self.mount(Message("send it", align_horizontal="center", classes="info"))
         self.send_messages()
@@ -558,6 +591,7 @@ class PoodleTui(App):
                 Message(
                     "Keyword detection stopped.",
                     classes="local",
+                    content_style="bright_magenta",
                 )
             )
         else:
@@ -566,11 +600,77 @@ class PoodleTui(App):
                 Message(
                     "Keyword detection started.",
                     classes="local",
+                    content_style="bright_magenta",
                 )
             )
 
+    def action_toggle_sounds(self) -> None:
+        if self.config.sounds:
+            self.config.__setattr__("sounds", False)
+        else:
+            self.config.__setattr__("sounds", True)
+        self.query_one("#chat_view").mount(
+            Message(
+                f"sounds switched to: {self.config.sounds}",
+                classes="local",
+                content_style="bright_magenta",
+            )
+        )
+        self.query_one("#sounds_infoline", Label).update(
+            self.config_label_str(self.config.sounds)
+        )
+
+    def action_toggle_online_transcribe(self) -> None:
+        if self.config.online_transcribe:
+            self.config.__setattr__("online_transcribe", False)
+        else:
+            self.config.__setattr__("online_transcribe", True)
+        self.query_one("#chat_view").mount(
+            Message(
+                f"online_transcribe switched to: {self.config.online_transcribe}",
+                classes="local",
+                content_style="bright_magenta",
+            )
+        )
+        # self.query_one("#online_transcribe_infoline", Label).update(
+        #     self.config_label_str(self.config.online_transcribe)
+        # )
+
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
+
+    def action_edit_config_speak(self) -> None:
+        pass
+        # )
+        # self.query_one("#speak_infoline", Label).update(
+        #     self.config_label_str(self.config.speak)
+        # )
+
+    def action_edit_temperature(self, temp: float) -> None:
+        if temp > 2.0:
+            temp = 2.0
+        if temp < 0:
+            temp = 0
+        self.config.__setattr__("temperature", temp)
+        self.query_one("#temperature_infoline", Label).update(
+            self.config_label_str(self.config.temperature)
+        )
+
+    def action_edit_presence_penalty(self, pp: float) -> None:
+        if pp > 2.0:
+            pp = 2.0
+        if pp < 0:
+            pp = 0
+        self.config.__setattr__("presence_penalty", pp)
+        self.query_one("#presence_penalty_infoline", Label).update(
+            self.config_label_str(self.config.speak)
+        )
+
+    def action_edit_chat_model(self, m: str) -> None:
+        self.config.__setattr__("chat_model", m)
+        self.query_one("#model_infoline", Label).update(
+            self.config_label_str(self.config.chat_model)
+        )
 
 
 if __name__ == "__main__":

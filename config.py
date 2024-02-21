@@ -1,11 +1,10 @@
 # config.py
 import dataclasses
 from dataclasses import dataclass, field, fields
-from typing import Optional
 import json
 
 
-@dataclass(unsafe_hash=True, kw_only=True)
+@dataclass(unsafe_hash=True)
 class Configurator:
     path_prompt_bodies_audio: str = field(default="")
     transcription_path: str = field(default="")
