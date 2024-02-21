@@ -1,5 +1,5 @@
 {
-  "ENABLE_DUMP_KEYWORD_BLOCK": false,
-  "PYAUDIO_CHANNELS": 1,
-  "PYAUDIO_FRAMES_PER_BUFFER": 8000
+  "enable_dump_keyword_block": false,
+  "pyaudio_channels": 1,
+  "pyaudio_frames_per_buffer": 8000
 }

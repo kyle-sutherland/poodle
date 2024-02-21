@@ -23,14 +23,14 @@ from pydub.playback import play
 from transformers import pipeline
 
 # Local Modules
-import config
+from config import Configurator
 import event_flags as ef
 import whisper
 from core.file_manager import FileManager
 import soundfile
 
 
-def playMp3Sound(file):
+async def playMp3Sound(file):
     sound = AudioSegment.from_mp3(file)
     sound_thread = threading.Thread(target=play, args=(sound,))
     sound_thread.start()
@@ -40,13 +40,16 @@ v_lang_dict = FileManager.read_json("./vosk_langs.json")
 
 
 class KeywordDetector(threading.Thread):
-    def __init__(self, keyword, audio_params=None, max_listener_threads=10):
+    def __init__(
+        self, config: Configurator, audio_params=None, max_listener_threads=10
+    ):
         threading.Thread.__init__(self)
+        self.config = config
         self.stream_write_time = None
-        self.keyword = keyword
+        self.keyword = self.config.keyword
         self.vosk = vosk
         self.vosk.SetLogLevel(-1)
-        self.model = vosk.Model(lang=v_lang_dict[config.LANG])
+        self.model = vosk.Model(lang=v_lang_dict[self.config.__getattribute__("lang")])
         self.audio_queue = queue.Queue()
         self.keyword_listeners = []
         self.partial_listeners = []
@@ -55,7 +58,7 @@ class KeywordDetector(threading.Thread):
         self.stream_write_time = None
         self.audio_params = audio_params or {}
         self.fetcher = AudioQueueFetcher(
-            self.audio_queue, self.running, **self.audio_params
+            self.audio_queue, self.running, self.config, **self.audio_params
         )
         self.sample_rate = self.fetcher.sample_rate
         self.executor = ThreadPoolExecutor(max_listener_threads)
@@ -106,29 +109,26 @@ class KeywordDetector(threading.Thread):
 
 
 class AudioQueueFetcher(threading.Thread):
-    def __init__(
-        self,
-        audio_queue,
-        running,
-        channels=config.PYAUDIO_CHANNELS,
-        frames_per_buffer=8000,
-    ):
+    def __init__(self, audio_queue, running, config: Configurator):
         threading.Thread.__init__(self)
+        self.config = config
         self.audio_queue = audio_queue
         self.running = running
         self.pa = pyaudio.PyAudio()
-        self.channels = channels
-        self.frames_per_buffer = frames_per_buffer
+        self.channels = self.config.__getattribute__("pyaudio_channels")
+        self.frames_per_buffer = self.config.__getattribute__(
+            "pyaudio_frames_per_buffer"
+        )
         self.default_device_info = self.pa.get_default_input_device_info()
         self.sample_rate = int(self.default_device_info["defaultSampleRate"])
 
     def run(self):
         stream = self.pa.open(
             format=pyaudio.paInt16,
-            channels=config.PYAUDIO_CHANNELS,
+            channels=self.config.__getattribute__("pyaudio_channels"),
             rate=self.sample_rate,
             input=True,
-            frames_per_buffer=config.PYAUDIO_FRAMES_PER_BUFFER,
+            frames_per_buffer=self.config.__getattribute__("pyaudio_frames_per_buffer"),
         )
         while self.running.is_set():
             data = stream.read(self.frames_per_buffer)
@@ -142,11 +142,12 @@ class AudioQueueFetcher(threading.Thread):
 
 
 class Transcriber:
-    def __init__(self, audio_directory, transcription_directory):
-        self.audio_directory = audio_directory
-        self.transcription_directory = transcription_directory
+    def __init__(self, audio_directory, transcription_directory, config: Configurator):
+        self.config = config
+        self.audio_directory = self.config.path_prompt_bodies_audio
+        self.transcription_directory = self.config.transcription_path
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = config.LOCAL_TRANSCRIBER_MODEL
+        self.model = self.config.local_transcriber_model
         self.mod = whisper.load_model(self.model, self.device)
 
     @yaspin(text="Transcribing...", color="yellow")
@@ -185,7 +186,8 @@ class OnlineTranscriber:
                 os.remove(f"{self.audio_directory}{file}")
                 file = file.rstrip(".wav")
                 FileManager.save_json(
-                    f"{self.transcription_directory}transcription_{file}.json", result
+                    f"{self.transcription_directory}transcription_{file}.json",
+                    dict(result),
                 )
                 logging.info(
                     f"transcription completed in: "
@@ -194,7 +196,8 @@ class OnlineTranscriber:
 
 
 class AudioRecorder:
-    def __init__(self):
+    def __init__(self, config: Configurator):
+        self.config = config
         self.pa = pyaudio.PyAudio()
         self.default_device_info = self.pa.get_default_input_device_info()
         self.sample_rate = int(self.default_device_info["defaultSampleRate"])
@@ -205,7 +208,7 @@ class AudioRecorder:
     def start_recording(self):
         stream = self.pa.open(
             format=pyaudio.paInt16,
-            channels=config.PYAUDIO_CHANNELS,
+            channels=self.config.pyaudio_channels,
             rate=self.sample_rate,
             input=True,
             frames_per_buffer=self.frames_per_buffer,
@@ -223,7 +226,7 @@ class AudioRecorder:
         self.stream.close()
         self.stream.stop_stream()
         sound_file = wave.open(filepath, "wb")
-        sound_file.setnchannels(config.PYAUDIO_CHANNELS)
+        sound_file.setnchannels(self.config.pyaudio_channels)
         sound_file.setsampwidth(self.pa.get_sample_size(pyaudio.paInt16))
         sound_file.setframerate(self.sample_rate)
         sound_file.writeframes(b"".join(self.frames))
@@ -266,7 +269,7 @@ class TextToSpeech:
     @yaspin(text="Speaking...", color="yellow")
     def stream_voice(self, text, voice):
         response = self.tts.speech.create(
-            model=self.model, voice=voice, input=text, response_format="mp3", speed=1.1
+            model=self.model, voice=voice, input=text, response_format="mp3", speed=1
         )
         audio_data = BytesIO(response.content)
         audio_segment = AudioSegment.from_file(audio_data, format="mp3")

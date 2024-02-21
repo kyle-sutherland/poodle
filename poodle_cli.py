@@ -1,3 +1,4 @@
+#!/home/kyle/miniconda3/envs/poodle/bin/python
 # poodle_cli.py
 import config
 from cli.arg_parser import ParseArgs
@@ -234,7 +235,8 @@ def main():
         convo = chat_session.messages
         timestamp = FileManager.get_datetime_string()
         FileManager.save_json(
-            f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json", convo
+            f"{config.CONVERSATIONS_PATH}conversation_{timestamp}.json",
+            convo.get_messages(),
         )
         console.print("\n\nGoodbye.")
         keyword_detector.close()

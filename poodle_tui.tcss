@@ -1,0 +1,76 @@
+Screen {
+  layout: horizontal;
+}
+
+Message { 
+    box-sizing: content-box;
+    }
+
+UserMessage {
+    grid-size: 2 1; 
+    grid-columns: auto;
+    layout: grid;
+    box-sizing: content-box;
+}
+
+AssistantMessage {
+    grid-size: 2 1; 
+    grid-columns: auto;
+    layout: grid;
+    box-sizing: content-box;
+}
+
+
+TextInput {
+  dock: bottom;
+}
+
+#extrapane{
+  layout: vertical;
+  width: 2fr;
+}
+
+#chat_view{
+  padding: 0 0;
+  layout: vertical;
+  width: 7fr;
+}
+
+#emote {
+  width: 36;
+}
+
+#info{
+  layout: vertical;
+  width: 1fr;
+  margin: 1 4 0 0;
+}
+
+#icons {
+  padding: 0;
+}
+
+#welcome {
+    padding: 1 0 2 0;
+    width: 1fr;
+}
+
+#assistant_messages {
+    padding: 1 1;
+}
+#user_messages {
+    padding: 1 1;
+}
+
+.info_value {
+  padding: 0 2;
+}
+
+.infoline {
+  layout: grid;
+  grid-size: 2 1;
+  grid-columns: 1fr 1fr;
+  padding: 0;
+  height: 1;
+  width: 100%;
+}

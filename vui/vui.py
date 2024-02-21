@@ -1,6 +1,6 @@
 import threading
 import json
-import config
+from config import Configurator
 import warnings
 
 
@@ -18,15 +18,18 @@ from core.file_manager import FileManager
 
 
 class Vui:
-    def __init__(self, kw, listeners: list, partial_listeners: list):
+    def __init__(
+        self, kw, listeners: list, partial_listeners: list, config: Configurator
+    ):
+        self.config: Configurator = config
         self.partial_listeners = partial_listeners
         self.listeners = listeners
         self.silence_watcher = SilenceWatcher()
         self.tts = TextToSpeech()
         self.tts_local = TextToSpeechLocal()
-        self.audio_recorder = AudioRecorder()
-        self.detector = KeywordDetector(kw)
-        self.transcriber = self.load_transcriber(config.ONLINE_TRANSCRIBE)
+        self.audio_recorder = AudioRecorder(self.config)
+        self.detector = KeywordDetector(self.config)
+        self.transcriber = self.load_transcriber(self.config.online_transcribe)
         self.keyword_detection_active = False
         self.transcriptions = []
 
@@ -35,9 +38,9 @@ class Vui:
 
     def speak_response(self, content):
         def tts_task():
-            match config.SPEAK.lower():
+            match self.config.speak.lower():
                 case "cloud":
-                    self.tts.stream_voice(text=content, voice=config.VOICE)
+                    self.tts.stream_voice(text=content, voice=self.config.voice)
                 case "local":
                     file = self.tts_local.generate_speech(text=content)
                     self.tts_local.play_audio(file)
@@ -50,9 +53,13 @@ class Vui:
     def load_transcriber(self, online: bool):
         if online:
             return OnlineTranscriber(
-                config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH
+                self.config.path_prompt_bodies_audio, self.config.transcription_path
             )
-        return Transcriber(config.PATH_PROMPT_BODIES_AUDIO, config.TRANSCRIPTION_PATH)
+        return Transcriber(
+            self.config.path_prompt_bodies_audio,
+            self.config.transcription_path,
+            config=self.config,
+        )
 
     def pl_no_speech(self, partial_result):
         pr = json.loads(partial_result)
@@ -61,7 +68,7 @@ class Vui:
                 ef.silence.set()
                 timestamp = FileManager.get_datetime_string()
                 self.audio_recorder.stop_recording(
-                    f"{config.PATH_PROMPT_BODIES_AUDIO}body_{timestamp}.wav"
+                    f"{self.config.path_prompt_bodies_audio}body_{timestamp}.wav"
                 )
                 self.silence_watcher.reset()
 
@@ -81,10 +88,10 @@ class Vui:
             warnings.simplefilter("ignore")
             self.transcriber.transcribe_bodies()
             self.transcriptions = list(
-                FileManager.read_transcriptions(config.TRANSCRIPTION_PATH)
+                FileManager.read_transcriptions(self.config.transcription_path)
             )
 
-    def start_recording(self, stream_write_time):
+    def start_recording(self, stream_write_time=0):
         self.audio_recorder.start_recording()
         self.silence_watcher.reset()
         ef.stream_write_time = stream_write_time
