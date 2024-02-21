@@ -206,14 +206,14 @@ class PoodleTui(App):
             self.kwl_print_keyword_message,
             self.kwl_input_speech,
         ]
-        self.poodle_vui = Vui(self.config.keyword, self.kw_listeners, [], self.config)
-        self.transcriber = self.poodle_vui.transcriber
-        self.keyword_detector = self.poodle_vui.initialize_kw_detector()
-        self.tts = self.poodle_vui.tts
-        self.tts_local = self.poodle_vui.tts_local
+        self.vui = Vui(self.config.keyword, self.kw_listeners, [], self.config)
+        self.transcriber = self.vui.transcriber
+        self.keyword_detector = self.vui.initialize_kw_detector()
+        self.tts = self.vui.tts
+        self.tts_local = self.vui.tts_local
         ef.silence.clear()
         ef.speaking.clear()
-        await self.poodle_vui.start_keyword_detection()
+        await self.vui.start_keyword_detection()
         self.transcriber_loop = self.set_interval(0.1, self.loop_transcription)
         self.wrap_width = 112
 
@@ -252,6 +252,12 @@ class PoodleTui(App):
     def config_label_str(self, value) -> str:
         config_value_style = "cyan"
         return f"[{config_value_style}]{value}[/{config_value_style}]"
+
+    def config_label_bool(self, value: bool) -> str:
+        if value:
+            return f"[bright_green]{value}[/bright_green]"
+        else:
+            return f"[red]{value}[/red]"
 
     def compose(self) -> ComposeResult:
 
@@ -294,7 +300,7 @@ class PoodleTui(App):
                 Container(
                     Label("Sounds: "),
                     Label(
-                        self.config_label_str(self.config.sounds),
+                        self.config_label_bool(self.config.sounds),
                         id="sounds_infoline",
                     ),
                     classes="infoline",
@@ -304,6 +310,14 @@ class PoodleTui(App):
                     Label(
                         self.config_label_str(self.config.keyword),
                         id="keyword_infoline",
+                    ),
+                    classes="infoline",
+                ),
+                Container(
+                    Label("Detector: "),
+                    Label(
+                        self.config_label_bool(self.vui.keyword_detection_active),
+                        id="detector_infoline",
                     ),
                     classes="infoline",
                 ),
@@ -403,7 +417,7 @@ class PoodleTui(App):
         tts_thread = None
         content = self.chat_utils.handle_response(resp, self.chat_session)
         if self.isSpeak():
-            tts_thread = self.poodle_vui.speak_response(content)
+            tts_thread = self.vui.speak_response(content)
             tts_thread.start()
         self.print_response(content)
         if tts_thread is not None:
@@ -434,8 +448,8 @@ class PoodleTui(App):
         if ef.silence.is_set() and not ef.recording.is_set():
             self.status["listening"].display = False
             self.status["transcribing"].display = True
-            self.poodle_vui.process_transcriptions()
-            transcriptions: list = self.poodle_vui.get_transcriptions()
+            self.vui.process_transcriptions()
+            transcriptions: list = self.vui.get_transcriptions()
             trans_text = self.chat_utils.extract_trans_text(transcriptions)
             if len(trans_text) == 0:
                 if self.config.sounds:
@@ -471,7 +485,7 @@ class PoodleTui(App):
     # keyword listeners
     @work
     async def kwl_input_speech(self, keyword, data, stream_write_time) -> None:
-        self.poodle_vui.start_recording(stream_write_time)
+        self.vui.start_recording(stream_write_time)
 
     def action_input_file(self) -> None:
         new_input = TextInput(
@@ -577,7 +591,7 @@ class PoodleTui(App):
 
     @work
     async def action_input_speech(self) -> None:
-        self.poodle_vui.start_recording()
+        self.vui.start_recording()
 
     def action_send(self) -> None:
         # self.mount(Message("send it", align_horizontal="center", classes="info"))
@@ -585,39 +599,21 @@ class PoodleTui(App):
 
     @work
     async def action_toggle_kw_detection(self) -> None:
-        if self.poodle_vui.keyword_detection_active:
-            self.poodle_vui.stop_keyword_detection()
-            self.query_one("#chat_view").mount(
-                Message(
-                    "Keyword detection stopped.",
-                    classes="local",
-                    content_style="bright_magenta",
-                )
-            )
+        if self.vui.keyword_detection_active:
+            self.vui.stop_keyword_detection()
         else:
-            await self.poodle_vui.start_keyword_detection()
-            self.query_one("#chat_view").mount(
-                Message(
-                    "Keyword detection started.",
-                    classes="local",
-                    content_style="bright_magenta",
-                )
-            )
+            await self.vui.start_keyword_detection()
+        self.query_one("#detector_infoline", Label).update(
+            self.config_label_bool(self.vui.keyword_detection_active)
+        )
 
     def action_toggle_sounds(self) -> None:
         if self.config.sounds:
             self.config.__setattr__("sounds", False)
         else:
             self.config.__setattr__("sounds", True)
-        self.query_one("#chat_view").mount(
-            Message(
-                f"sounds switched to: {self.config.sounds}",
-                classes="local",
-                content_style="bright_magenta",
-            )
-        )
         self.query_one("#sounds_infoline", Label).update(
-            self.config_label_str(self.config.sounds)
+            self.config_label_bool(self.config.sounds)
         )
 
     def action_toggle_online_transcribe(self) -> None:
@@ -625,13 +621,6 @@ class PoodleTui(App):
             self.config.__setattr__("online_transcribe", False)
         else:
             self.config.__setattr__("online_transcribe", True)
-        self.query_one("#chat_view").mount(
-            Message(
-                f"online_transcribe switched to: {self.config.online_transcribe}",
-                classes="local",
-                content_style="bright_magenta",
-            )
-        )
         # self.query_one("#online_transcribe_infoline", Label).update(
         #     self.config_label_str(self.config.online_transcribe)
         # )
@@ -670,6 +659,18 @@ class PoodleTui(App):
         self.config.__setattr__("chat_model", m)
         self.query_one("#model_infoline", Label).update(
             self.config_label_str(self.config.chat_model)
+        )
+
+    def action_edit_agent_path(self, m: str) -> None:
+        self.config.__setattr__("agent_path", m)
+        self.query_one("#model_infoline", Label).update(
+            self.config_label_str(self.config.agent_path)
+        )
+
+    def action_edit_keyword(self, m: str) -> None:
+        self.config.__setattr__("keyword", m)
+        self.query_one("#model_infoline", Label).update(
+            self.config_label_str(self.config.keyword)
         )
 
 
