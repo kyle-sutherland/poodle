@@ -180,7 +180,6 @@ class PoodleTui(App):
         ("v", "input_speech", "voice"),
         ("f", "input_file", "parse file"),
         ("ctrl+q", "quit", "quit"),
-        ("e", "incr_emote", "increment emote"),
         ("o", "toggle_sounds", "sounds"),
     ]
 
@@ -487,16 +486,6 @@ class PoodleTui(App):
     async def kwl_input_speech(self, keyword, data, stream_write_time) -> None:
         self.vui.start_recording(stream_write_time)
 
-    def action_input_file(self) -> None:
-        new_input = TextInput(
-            id="file_input",
-            valid_empty=False,
-            validators=[Length(minimum=2)],
-        )
-        new_input.border_title = "File"
-        self.mount(new_input)
-        new_input.focus()
-
     @work
     async def kwl_print_keyword_message(self, keyword, data, stream_write_time) -> None:
         self.status["listening"].display = True
@@ -553,6 +542,16 @@ class PoodleTui(App):
             )
         input.remove()
 
+    def action_input_file(self) -> None:
+        new_input = TextInput(
+            id="file_input",
+            valid_empty=False,
+            validators=[Length(minimum=2)],
+        )
+        new_input.border_title = "File"
+        self.query_one("#chat_view").mount(new_input)
+        new_input.focus()
+
     @work
     async def action_print_keyword_message(self) -> None:
         self.status["listening"].display = True
@@ -586,7 +585,7 @@ class PoodleTui(App):
             valid_empty=False,
         )
         new_input.border_title = "Text"
-        self.app.mount(new_input)
+        self.query_one("#chat_view").mount(new_input)
         new_input.focus()
 
     @work

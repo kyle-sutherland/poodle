@@ -22,7 +22,6 @@ AssistantMessage {
 
 
 TextInput {
-  offset: 0 -2;
   dock: bottom;
 }
 
