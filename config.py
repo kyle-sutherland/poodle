@@ -11,7 +11,7 @@ class Configurator:
     conversations_path: str = field(default="")
     response_log_path: str = field(default="")
     local_transcriber_model: str = field(default="")
-    speak: str = field(default="")
+    tts: str = field(default="")
     voice: str = field(default="")
     agent_path: str = field(default="")
     chat_model: str = field(default="")

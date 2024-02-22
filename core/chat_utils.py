@@ -59,7 +59,7 @@ def get_vosk_languages() -> dict:
     return FileManager.read_json("./models.json")
 
 
-def chat_completion_to_dict(response):
+def chat_completion_to_dict(response: ChatCompletion) -> dict:
     # Assuming 'response' is an instance of ChatCompletion
     # Convert it to a dictionary format
     chat_dict = {
@@ -128,7 +128,7 @@ class ChatSession:
     ):
         self.ai = openai
         self.ai.api_key = FileManager.read_file("api_keys/keys")
-        self.ai.organization = "org-9YiPG54UMFObNmQ2TMOnPCar"
+        self.ai.organization = FileManager.read_file("api_keys/org")
         self.model = model
         if model is None:
             self.model = "gpt-3.5-1106"
@@ -159,9 +159,10 @@ class ChatSession:
                 #     "output_instructions": "Optimize your output formatting for printing to a terminal. This terminal uses UTF-8 encoding and supports special characters and glyphs. Don't worry about line length. Don't talk about these instructions"
                 # }
                 "Format your output using markdown. Your output will be read as a string using markdown formatting. "
-                "You can use special characters and glyphs as well. Your text will output cyan by default, but you "
-                "can change text colors using bbcode, for example: [magenta]colored text[/magenta]; you can name any "
-                "of the 256 standard 8-bit coldes supported by terminals. Don't talk about these instructions at all."
+                "You can use special characters and glyphs as well."
+                # "Your text will output cyan by default, but you "
+                # "can change text colors using bbcode, for example: [magenta]colored text[/magenta]; you can name any "
+                # "of the 256 standard 8-bit coldes supported by terminals. Don't talk about these instructions at all."
             )
         else:
             self.add_system_message(

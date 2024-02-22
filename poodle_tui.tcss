@@ -20,6 +20,10 @@ AssistantMessage {
     box-sizing: content-box;
 }
 
+OptionsMenu {
+  dock: right;
+  width: 20%;
+}
 
 TextInput {
   dock: bottom;
@@ -33,7 +37,7 @@ TextInput {
 #chat_view{
   padding: 0 0;
   layout: vertical;
-  width: 7fr;
+  width: 9fr;
 }
 
 #emote {
@@ -60,6 +64,14 @@ TextInput {
 }
 #user_messages {
     padding: 1 1;
+}
+
+
+#opt_pp {
+  width: 10;
+}
+#opt_temp {
+  width: 10;
 }
 
 .info_value {

@@ -16,9 +16,19 @@ from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Container, VerticalScroll
 from textual.reactive import Reactive
-from textual.validation import Length
-from textual.widgets import Footer, Input, Label, Placeholder, Static, TextArea
-from textual.widgets import Markdown
+from textual.validation import Length, Number
+from textual.widgets import (
+    Footer,
+    Input,
+    Label,
+    Placeholder,
+    Static,
+    TextArea,
+    Select,
+    Markdown,
+    Switch,
+)
+from textual.widget import Widget
 
 from config import Configurator
 from core.core import Poodle
@@ -168,19 +178,77 @@ class AssistantMessageMd(Message):
         self.mount(Markdown(str(self.c)))
 
 
+class OptionsMenu(Widget):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.can_focus = True
+
+    BINDINGS = [("o", "close", "close")]
+
+    def compose(self):
+        tempinput = Input(
+            type="number",
+            value=str(PoodleTui().config.temperature),
+            validators=[Number(minimum=0.0, maximum=2.0)],
+            id="opt_temp",
+        )
+        ppinput = Input(
+            type="number",
+            value=str(PoodleTui().config.presence_penalty),
+            validators=[Number(minimum=0.0, maximum=2.0)],
+            id="opt_pp",
+        )
+        tts_opts = ["none", "cloud", "local"]
+        yield Container(
+            Label("Voice: "),
+            Select(
+                options=(
+                    (voice, voice) for voice in PoodleTui().whisper_info["voices"]
+                ),
+                value=PoodleTui().config.voice,
+                allow_blank=False,
+                id="opt_voice",
+            ),
+            Label("Model:"),
+            Select(
+                options=((model, model) for model in PoodleTui().chat_models),
+                value=PoodleTui().config.chat_model,
+                allow_blank=False,
+                id="opt_chat_model",
+            ),
+            Label("temperature: "),
+            tempinput,
+            Label("presence penalty: "),
+            ppinput,
+            Label("Sounds:"),
+            Switch(value=PoodleTui().config.sounds, id="opt_sounds"),
+            Label("Speech Output:"),
+            Select(
+                options=((opt, opt) for opt in tts_opts),
+                value=PoodleTui().config.tts,
+                allow_blank=False,
+                id="opt_speech",
+            ),
+            id="opts_0",
+        )
+
+    def action_close(self):
+        self.remove()
+
+
 class PoodleTui(App):
 
     CSS_PATH = "poodle_tui.tcss"
 
     BINDINGS = [
-        ("k", "toggle_kw_detection", "kw detection"),
+        # ("k", "toggle_kw_detection", "kw detection"),
         ("ctrl+s", "send", "send"),
         ("s", "input_speech, print_keyword_message", f"speech"),
         ("t", "input_text", "text"),
         ("v", "input_speech", "voice"),
         ("f", "input_file", "parse file"),
         ("ctrl+q", "quit", "quit"),
-        ("o", "toggle_sounds", "sounds"),
+        ("o", "options", "options"),
     ]
 
     images = [
@@ -194,6 +262,8 @@ class PoodleTui(App):
     ]
 
     config = Configurator()
+    whisper_info: dict = FileManager.read_json("whisper.json")
+    chat_models: dict = FileManager.read_json("core/models.json")
 
     async def on_load(self):
         self.config.load_configurations()
@@ -217,14 +287,6 @@ class PoodleTui(App):
         self.wrap_width = 112
 
     def on_mount(self):
-        self.status = {
-            "transcribing": SpinnerWidget("dots", "blue", "Transcribing..."),
-            "vocalizing": SpinnerWidget("dots", "yellow", "Vocalizing..."),
-            "replying": SpinnerWidget("dots", "bright_magenta", "Replying..."),
-            "reading": SpinnerWidget("dots", "green", "Reading"),
-            "listening": Label("Listening"),
-            "ready": Label("Ready"),
-        }
         for status in self.status:
             self.query_one("#status").mount(self.status[status])
             self.status[status].display = False
@@ -236,17 +298,16 @@ class PoodleTui(App):
     # 0: neutral, 1:confused, 2:excited, 3:happy, 4:love, 5:angry, 6:dead.
     # assistant_icons = ["󰚩 ", "󱚟 ", "󱚣 ", "󱜙 ","󱚥 " "󱚝 ", "󱚡 "]
     assistant_icons = ["󱙺 ", "󱚠 ", "󱚤 ", "󱜚 ", "󱚦 " "󱚞 ", "󱚢 "]
-
+    status = {
+        "transcribing": SpinnerWidget("dots", "blue", "Transcribing..."),
+        "vocalizing": SpinnerWidget("dots", "yellow", "Vocalizing..."),
+        "replying": SpinnerWidget("dots", "bright_magenta", "Replying..."),
+        "reading": SpinnerWidget("dots", "green", "Reading"),
+        "listening": Label("Listening"),
+        "ready": Label("Ready"),
+    }
     auto_send = Reactive(False)
     emote = Reactive(0)
-
-    # model: str
-    # agent_path: str
-    # voice: str
-    # sounds: str
-    # keyword: str
-    # temperature: str
-    # presence_penalty: str
 
     def config_label_str(self, value) -> str:
         config_value_style = "cyan"
@@ -259,15 +320,6 @@ class PoodleTui(App):
             return f"[red]{value}[/red]"
 
     def compose(self) -> ComposeResult:
-
-        # self.model = self.config.chat_model
-        # self.agent_path = self.config.agent_path
-        # self.voice = self.config.voice
-        # self.sounds = str(self.config.sounds)
-        # self.keyword = self.config.keyword
-        # self.temperature = str(self.config.temperature)
-        # self.presence_penalty = str(self.config.presence_penalty)
-
         chat_view = VerticalScroll(id="chat_view")
         yield Container(
             Static(self.images[0], id="emote"),
@@ -286,6 +338,11 @@ class PoodleTui(App):
                         self.config_label_str(self.config.agent_path),
                         id="agent_infoline",
                     ),
+                    classes="infoline",
+                ),
+                Container(
+                    Label("Text To Speech: "),
+                    Label(self.config_label_str(self.config.tts), id="tts_infoline"),
                     classes="infoline",
                 ),
                 Container(
@@ -332,7 +389,7 @@ class PoodleTui(App):
                     Label("presence penalty: "),
                     Label(
                         self.config_label_str(self.config.presence_penalty),
-                        id="presence_penalty",
+                        id="presence_penalty_infoline",
                     ),
                     classes="infoline",
                 ),
@@ -355,7 +412,7 @@ class PoodleTui(App):
         return w
 
     def isSpeak(self):
-        if self.config.speak.lower() != "cloud" or self.config.speak.lower() != "local":
+        if self.config.tts.lower() != "cloud" or self.config.tts.lower() != "local":
             return False
         return True
 
@@ -498,10 +555,10 @@ class PoodleTui(App):
         )
         if self.config.sounds:
             self.run_worker(playMp3Sound("sounds/listening.mp3"))
-        if self.config.speak.lower() == "cloud":
+        if self.config.tts.lower() == "cloud":
             if self.tts.is_audio_playing():
                 self.tts.stop_audio()
-        if self.config.speak.lower() == "local":
+        if self.config.tts.lower() == "local":
             self.tts_local.stop_audio()
         else:
             pass
@@ -542,6 +599,42 @@ class PoodleTui(App):
             )
         input.remove()
 
+    @on(Select.Changed, "#opt_voice")
+    def select_voice_changed(self, event: Select.Changed):
+        voice: str = str(event.value)
+        self.action_edit_voice(voice)
+        self.title = voice
+
+    @on(Select.Changed, "#opt_chat_model")
+    def select_chat_model_changed(self, event: Select.Changed):
+        model: str = str(event.value)
+        self.action_edit_chat_model(model)
+        self.title = model
+
+    @on(Input.Submitted, "#opt_temp")
+    def opt_temp_changed(self, event: Input.Submitted):
+        temp: float = float(event.value)
+        self.action_edit_temperature(temp)
+
+    @on(Input.Submitted, "#opt_pp")
+    def opt_pp_changed(self, event: Input.Submitted):
+        pp: float = float(event.value)
+        self.action_edit_presence_penalty(pp)
+
+    @on(Switch.Changed, "#opt_sounds")
+    def opt_sounds_changed(self):
+        self.action_toggle_sounds()
+
+    @on(Select.Changed, "#opt_speech")
+    def opt_speech_changed(self, event: Select.Changed):
+        speech = str(event.value)
+        self.action_edit_config_tts(speech)
+
+    def action_options(self) -> None:
+        opts = OptionsMenu()
+        self.mount(opts)
+        opts.focus()
+
     def action_input_file(self) -> None:
         new_input = TextInput(
             id="file_input",
@@ -564,10 +657,10 @@ class PoodleTui(App):
         )
         if self.config.sounds:
             self.run_worker(playMp3Sound("sounds/listening.mp3"))
-        if self.config.speak.lower() == "cloud":
+        if self.config.tts.lower() == "cloud":
             if self.tts.is_audio_playing():
                 self.tts.stop_audio()
-        if self.config.speak.lower() == "local":
+        if self.config.tts.lower() == "local":
             self.tts_local.stop_audio()
         else:
             pass
@@ -627,12 +720,11 @@ class PoodleTui(App):
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
 
-    def action_edit_config_speak(self) -> None:
-        pass
-        # )
-        # self.query_one("#speak_infoline", Label).update(
-        #     self.config_label_str(self.config.speak)
-        # )
+    def action_edit_config_tts(self, tts: str) -> None:
+        self.config.__setattr__("tts", tts)
+        self.query_one("#tts_infoline", Label).update(
+            self.config_label_str(self.config.tts)
+        )
 
     def action_edit_temperature(self, temp: float) -> None:
         if temp > 2.0:
@@ -651,25 +743,31 @@ class PoodleTui(App):
             pp = 0
         self.config.__setattr__("presence_penalty", pp)
         self.query_one("#presence_penalty_infoline", Label).update(
-            self.config_label_str(self.config.speak)
+            self.config_label_str(self.config.tts)
         )
 
-    def action_edit_chat_model(self, m: str) -> None:
-        self.config.__setattr__("chat_model", m)
+    def action_edit_chat_model(self, chat_model: str) -> None:
+        self.config.__setattr__("chat_model", chat_model)
         self.query_one("#model_infoline", Label).update(
             self.config_label_str(self.config.chat_model)
         )
 
-    def action_edit_agent_path(self, m: str) -> None:
-        self.config.__setattr__("agent_path", m)
-        self.query_one("#model_infoline", Label).update(
+    def action_edit_agent_path(self, agent_path: str) -> None:
+        self.config.__setattr__("agent_path", agent_path)
+        self.query_one("#agent_infoline", Label).update(
             self.config_label_str(self.config.agent_path)
         )
 
-    def action_edit_keyword(self, m: str) -> None:
-        self.config.__setattr__("keyword", m)
-        self.query_one("#model_infoline", Label).update(
+    def action_edit_keyword(self, keyword: str) -> None:
+        self.config.__setattr__("keyword", keyword)
+        self.query_one("#keyword_infoline", Label).update(
             self.config_label_str(self.config.keyword)
+        )
+
+    def action_edit_voice(self, voice: str) -> None:
+        self.config.__setattr__("voice", voice)
+        self.query_one("#voice_infoline", Label).update(
+            self.config_label_str(self.config.voice)
         )
 
 
