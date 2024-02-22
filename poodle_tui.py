@@ -406,8 +406,8 @@ class PoodleTui(App):
         w = str(
             # f"{f}[bright_magenta]Voice control GPT with rich terminal ui.[/bright_magenta]"
             f"{f}[bright_magenta]Voice interface GPT in your terminal.[/bright_magenta]"
-            # "                            v0.04"
-            "\n                                v0.04"
+            # "                            v0.05"
+            "\n                                v0.05"
         )
         return w
 
