@@ -20,7 +20,7 @@ class Poodle:
         self.chat_session: ChatSession
 
     def isSpeak(self):
-        if self.config.speak.lower != "cloud" or self.config.speak.lower() != "local":
+        if self.config.tts.lower != "cloud" or self.config.tts.lower() != "local":
             return False
         return True
 
@@ -28,14 +28,8 @@ class Poodle:
         return self.chat_session
 
     def run(self):
-        # The main logic of the application will be moved here.
-        # TODO: Make a function that loads all this stuff into variables at once.
-        # minimize calls to read_json()
         model = FileManager.read_json("core/models.json")
         model = model[self.config.chat_model]
-        # set global event flags
-
-        # Initializing other modules
         self.chat_session = ChatSession(
             json.dumps(self.prompt_jo, indent=None, ensure_ascii=True),
             model["name"],

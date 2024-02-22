@@ -38,7 +38,7 @@ class Vui:
 
     def speak_response(self, content):
         def tts_task():
-            match self.config.speak.lower():
+            match self.config.tts.lower():
                 case "cloud":
                     self.tts.stream_voice(text=content, voice=self.config.voice)
                 case "local":
