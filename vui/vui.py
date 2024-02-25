@@ -15,12 +15,11 @@ from vui.audio_utils import (
 )
 import event_flags as ef
 from core.file_manager import FileManager
+import core.chat_utils as chat_utils
 
 
 class Vui:
-    def __init__(
-        self, kw, listeners: list, partial_listeners: list, config: Configurator
-    ):
+    def __init__(self, listeners: list, partial_listeners: list, config: Configurator):
         self.config: Configurator = config
         self.partial_listeners = partial_listeners
         self.listeners = listeners
@@ -90,6 +89,11 @@ class Vui:
             self.transcriptions = list(
                 FileManager.read_transcriptions(self.config.transcription_path)
             )
+
+    def transcription_control(self) -> list:
+        if ef.silence.is_set() and not ef.recording.is_set():
+            self.process_transcriptions()
+            return chat_utils.extract_trans_text(self.transcriptions)
 
     def start_recording(self, stream_write_time=0):
         self.audio_recorder.start_recording()

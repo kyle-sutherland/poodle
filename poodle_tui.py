@@ -243,9 +243,9 @@ class PoodleTui(App):
     BINDINGS = [
         # ("k", "toggle_kw_detection", "kw detection"),
         ("ctrl+s", "send", "send"),
-        ("s", "input_speech, print_keyword_message", f"speech"),
+        ("s", "input_speech, print_keyword_message", "speech"),
         ("t", "input_text", "text"),
-        ("v", "input_speech", "voice"),
+        # ("v", "input_speech", "voice"),
         ("f", "input_file", "parse file"),
         ("ctrl+q", "quit", "quit"),
         ("o", "options", "options"),
@@ -275,7 +275,12 @@ class PoodleTui(App):
             self.kwl_print_keyword_message,
             self.kwl_input_speech,
         ]
-        self.vui = Vui(self.config.keyword, self.kw_listeners, [], self.config)
+        self.partial_kw_listeners = [self.pl_do_transcription]
+        self.vui = Vui(
+            self.kw_listeners,
+            self.partial_kw_listeners,
+            self.config,
+        )
         self.transcriber = self.vui.transcriber
         self.keyword_detector = self.vui.initialize_kw_detector()
         self.tts = self.vui.tts
@@ -283,7 +288,6 @@ class PoodleTui(App):
         ef.silence.clear()
         ef.speaking.clear()
         await self.vui.start_keyword_detection()
-        self.transcriber_loop = self.set_interval(0.1, self.loop_transcription)
         self.wrap_width = 112
 
     def on_mount(self):
@@ -499,31 +503,25 @@ class PoodleTui(App):
         )
         self.status["reading"].display = False
 
-    def loop_transcription(self) -> None:
-        self.status["transcribing"].display = False
-        if ef.silence.is_set() and not ef.recording.is_set():
-            self.status["listening"].display = False
-            self.status["transcribing"].display = True
-            self.vui.process_transcriptions()
-            transcriptions: list = self.vui.get_transcriptions()
-            trans_text = self.chat_utils.extract_trans_text(transcriptions)
-            if len(trans_text) == 0:
-                if self.config.sounds:
-                    self.run_worker(playMp3Sound("sounds/badcopy.mp3"))
-                self.query_one("#chat_view").mount(
-                    Message(
-                        content=" I didn't hear you",
-                        classes="local",
-                        content_style="bright_magenta",
-                    )
-                )
-                ef.silence.clear()
-                return  # Exit the function early if there's no transcription
+    @work
+    async def pl_do_transcription(self) -> None:
+        transcriptions = self.vui.transcription_control()
+        if len(transcriptions) == 0:
             if self.config.sounds:
-                self.run_worker(playMp3Sound("sounds/listening.mp3"))
-            wrapped_text = "\n".join(
-                textwrap.wrap(trans_text[0], width=self.wrap_width)
+                self.run_worker(playMp3Sound("sounds/badcopy.mp3"))
+            self.query_one("#chat_view").mount(
+                Message(
+                    content=" I didn't hear you",
+                    classes="local",
+                    content_style="bright_magenta",
+                )
             )
+            ef.silence.clear()
+            return  # Exit the function early if there's no transcription
+        if self.config.sounds:
+            self.run_worker(playMp3Sound("sounds/listening.mp3"))
+        for trans in transcriptions:
+            wrapped_text = "\n".join(textwrap.wrap(trans, width=self.wrap_width))
             self.query_one("#chat_view").mount(
                 UserMessage(
                     content=wrapped_text,
@@ -533,10 +531,10 @@ class PoodleTui(App):
                     content_style="cyan1",
                 )
             )
-            if len(str(transcriptions)) != 0:
-                self.chat_session.add_user_trans(transcriptions)
-            if self.auto_send:
-                self.action_send()
+        if len(str(transcriptions)) != 0:
+            self.chat_session.add_user_trans(transcriptions)
+        if self.auto_send:
+            self.action_send()
 
     # keyword listeners
     @work
