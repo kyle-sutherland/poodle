@@ -106,16 +106,6 @@ class ChatContent:
 
 
 class ChatSession:
-    error_completion = {
-        "choices": [
-            {
-                "messages": {
-                    "role": "system",
-                    "content": "An error occurred with the API request",
-                }
-            }
-        ]
-    }
 
     def __init__(
         self,
@@ -150,6 +140,52 @@ class ChatSession:
         if limit_thresh is None:
             self.limit_thresh = 0.4
         self.stream = stream
+
+    def chat_completion_to_dict(response: ChatCompletion) -> dict:
+        # Assuming 'response' is an instance of ChatCompletion
+        # Convert it to a dictionary format
+        chat_dict = {
+            "id": response.id,  # ID of the completion
+            "model": response.model,  # Model used for the completion
+            "created": response.created,  # Timestamp of creation
+            "object": response.object,  # Object type
+            "choices": [
+                {
+                    "finish_reason": choice.finish_reason,  # Reason why the generation was stopped
+                    "index": choice.index,  # Index of the choice
+                    "message": {
+                        "content": choice.message.content,  # Content of the message
+                        "role": choice.message.role,  # Role (user or assistant)
+                    },
+                    "logprobs": choice.logprobs,  # Log probabilities, if available
+                }
+                for choice in response.choices
+            ],
+            "created": response.created,  # Timestamp of creation
+            "id": response.id,  # ID of the completion
+            "model": response.model,  # Model used for the completion
+            "object": response.object,  # Object type
+            "usage": {
+                "completion_tokens": response.usage.completion_tokens,
+                "prompt_tokens": response.usage.prompt_tokens,
+                "total_tokens": response.usage.total_tokens,
+            },
+        }
+        return chat_dict
+
+    def error_completion(self, exception):
+        compl = {
+            "choices": [
+                {
+                    "messages": {
+                        "role": "system",
+                        "content": f"An error occurred with the API request {exception}",
+                    }
+                }
+            ],
+            "usage": {"total_tokens": 0},
+        }
+        return compl
 
     def initialize_chat(self, isSpeak: bool):
         self.add_system_message(self.initial_prompt)
@@ -253,15 +289,19 @@ class ChatSession:
     async def send_chat_request(self):
         messages = self.messages.get_messages()
         if len(messages) != 0:
-            chat_completion = self.ai.chat.completions.create(
-                messages=messages,
-                model=self.model,
-                temperature=self.temperature,
-                stream=self.stream,
-            )
-            return chat_completion
-        else:
-            pass
+            try:
+                chat_completion = self.ai.chat.completions.create(
+                    model=self.model,
+                    messages=self.messages.get_messages(),
+                    temperature=self.temperature,
+                    presence_penalty=self.presence_penalty,
+                    stream=self.stream,
+                )
+                return chat_completion
+
+            except Exception as e:
+                logging.error(f"Error sending request: {e}")
+                return self.error_completion(e)
 
     def summarize_conversation(self):
         console.print("\nSummarizing conversation. Please wait...\n")
@@ -288,7 +328,7 @@ class ChatSession:
             return chat_completion
         except Exception as e:
             console.print(f"Error sending request: {e}")
-            return self.error_completion
+            return self.error_completion(e)
 
     def add_summary(self, summary):
         m = [self.messages.get_messages()[0]]
