@@ -1,6 +1,7 @@
 # chat_utils.py
 import ast
 import logging
+import os
 from time import sleep
 from rich.console import Console
 from rich import print
@@ -11,7 +12,7 @@ import config
 
 console = Console()
 
-import openai
+from openai import OpenAI
 from openai.types.chat import ChatCompletion, chat_completion_chunk
 from core.file_manager import FileManager
 
@@ -126,9 +127,8 @@ class ChatSession:
         limit_thresh: float,
         stream: bool,
     ):
-        self.ai = openai
-        self.ai.api_key = FileManager.read_file("api_keys/keys")
-        self.ai.organization = FileManager.read_file("api_keys/org")
+        self.api_key = os.environ.get("OPENAI_API_KEY")
+        self.ai = OpenAI(api_key=self.api_key)
         self.model = model
         if model is None:
             self.model = "gpt-3.5-1106"
@@ -173,8 +173,6 @@ class ChatSession:
             "speech-to-text (trans) or text input the user has typed (text). Transcribed text may contain words "
             "that the transcriber has misheard. if it is prepended with file, the message is the contents of a file"
             "the use wants you to read."
-        )
-        self.add_system_message(
             "You are encouraged to prepend your messages with the following: '@n@' where n is a number from 0 to 6 to correspond with an emote. The numbers correspond as follows: 0: neutral, 1:confused, 2:excited, 3:happy, 4:love, 5:angry, 6:dead. for example: '@1@what was that?'. This prepend must begin the message in order for it to work."
         )
 
@@ -255,20 +253,15 @@ class ChatSession:
     async def send_chat_request(self):
         messages = self.messages.get_messages()
         if len(messages) != 0:
-            try:
-                chat_completion = self.ai.chat.completions.create(
-                    model=self.model,
-                    messages=self.messages.get_messages(),
-                    temperature=self.temperature,
-                    stream=self.stream,
-                )
-                return chat_completion
-
-            except Exception as e:
-                logging.error(f"Error sending request: {e}")
-                return self.error_completion["choices"][0]["messages"]["content"] + str(
-                    e
-                )
+            chat_completion = self.ai.chat.completions.create(
+                messages=messages,
+                model=self.model,
+                temperature=self.temperature,
+                stream=self.stream,
+            )
+            return chat_completion
+        else:
+            pass
 
     def summarize_conversation(self):
         console.print("\nSummarizing conversation. Please wait...\n")

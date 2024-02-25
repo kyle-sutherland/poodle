@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "poodle"
+version = "0.05"
+description = "Voice control interface for Chat GPT in your terminal."
+authors = ["Kyle Sutherland"]
+license = "GPL v3"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+PyAudio = "^0.2.14"
+textual = "^0.52.1"
+rich = "^13.7.0"
+richpixels = {path = "../richpixels"}
+sentencepiece = "^0.2.0"
+openai-whisper = "^20231117"
+six = "^1.16.0"
+datasets = "^2.17.1"
+openai = "^1.12.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
