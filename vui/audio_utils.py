@@ -30,7 +30,7 @@ from core.file_manager import FileManager
 import soundfile
 
 
-async def playMp3Sound(file):
+def playMp3Sound(file):
     sound = AudioSegment.from_mp3(file)
     sound_thread = threading.Thread(target=play, args=(sound,))
     sound_thread.start()

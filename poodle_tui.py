@@ -1,6 +1,8 @@
 # poodle_tui.py
 import textwrap
 from typing import cast
+import json
+import time
 
 import pyfiglet
 from rich.console import RenderableType
@@ -272,13 +274,12 @@ class PoodleTui(App):
         self.chat_session = self.poodle.get_session()
         self.chat_utils = self.poodle.chat_utils
         self.kw_listeners = [
-            self.kwl_print_keyword_message,
             self.kwl_input_speech,
+            self.kwl_print_keyword_message,
         ]
-        self.partial_kw_listeners = [self.pl_do_transcription]
         self.vui = Vui(
             self.kw_listeners,
-            self.partial_kw_listeners,
+            [self.pl_no_speech],
             self.config,
         )
         self.transcriber = self.vui.transcriber
@@ -296,7 +297,7 @@ class PoodleTui(App):
             self.status[status].display = False
         if self.config.sounds:
             # notification-sound-7062.mp3
-            self.run_worker(playMp3Sound("sounds/ready.mp3"))
+            playMp3Sound("sounds/ready.mp3")
         self.query_one("#chat_view").mount(Message(self.welcome()))
 
     # 0: neutral, 1:confused, 2:excited, 3:happy, 4:love, 5:angry, 6:dead.
@@ -504,11 +505,12 @@ class PoodleTui(App):
         self.status["reading"].display = False
 
     @work
-    async def pl_do_transcription(self) -> None:
-        transcriptions = self.vui.transcription_control()
-        if len(transcriptions) == 0:
+    async def chat_transcription(self) -> None:
+        transcriptions = self.vui.get_transcriptions()
+        trans_texts = self.chat_utils.extract_trans_text(transcriptions)
+        if len(trans_texts) == 0:
             if self.config.sounds:
-                self.run_worker(playMp3Sound("sounds/badcopy.mp3"))
+                playMp3Sound("sounds/badcopy.mp3")
             self.query_one("#chat_view").mount(
                 Message(
                     content=" I didn't hear you",
@@ -519,8 +521,8 @@ class PoodleTui(App):
             ef.silence.clear()
             return  # Exit the function early if there's no transcription
         if self.config.sounds:
-            self.run_worker(playMp3Sound("sounds/listening.mp3"))
-        for trans in transcriptions:
+            playMp3Sound("sounds/listening.mp3")
+        for trans in trans_texts:
             wrapped_text = "\n".join(textwrap.wrap(trans, width=self.wrap_width))
             self.query_one("#chat_view").mount(
                 UserMessage(
@@ -533,17 +535,16 @@ class PoodleTui(App):
             )
         if len(str(transcriptions)) != 0:
             self.chat_session.add_user_trans(transcriptions)
-        if self.auto_send:
-            self.action_send()
+            if self.auto_send:
+                self.action_send()
 
     # keyword listeners
-    @work
+    @work(thread=True)
     async def kwl_input_speech(self, keyword, data, stream_write_time) -> None:
         self.vui.start_recording(stream_write_time)
 
     @work
     async def kwl_print_keyword_message(self, keyword, data, stream_write_time) -> None:
-        self.status["listening"].display = True
         self.query_one("#chat_view").mount(
             Message(
                 f"\n This is {keyword}. I am listening.",
@@ -552,7 +553,7 @@ class PoodleTui(App):
             )
         )
         if self.config.sounds:
-            self.run_worker(playMp3Sound("sounds/listening.mp3"))
+            playMp3Sound("sounds/listening.mp3")
         if self.config.tts.lower() == "cloud":
             if self.tts.is_audio_playing():
                 self.tts.stop_audio()
@@ -560,6 +561,20 @@ class PoodleTui(App):
             self.tts_local.stop_audio()
         else:
             pass
+
+    def pl_no_speech(self, partial_result):
+        pr = json.loads(partial_result)
+        if ef.recording.is_set():
+            if self.vui.silence_watcher.check_silence(pr):
+                ef.silence.set()
+                timestamp = FileManager.get_datetime_string()
+                self.vui.audio_recorder.stop_recording(
+                    f"{self.config.path_prompt_bodies_audio}body_{timestamp}.wav"
+                )
+                self.vui.process_transcriptions()
+                time.sleep(0.1)
+                self.chat_transcription()
+                self.vui.silence_watcher.reset()
 
     @on(Input.Submitted, "#text_input")
     def add_text_input(self, event: Input.Submitted) -> None:
@@ -654,7 +669,7 @@ class PoodleTui(App):
             )
         )
         if self.config.sounds:
-            self.run_worker(playMp3Sound("sounds/listening.mp3"))
+            playMp3Sound("sounds/listening.mp3")
         if self.config.tts.lower() == "cloud":
             if self.tts.is_audio_playing():
                 self.tts.stop_audio()
