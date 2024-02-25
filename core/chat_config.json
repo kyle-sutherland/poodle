@@ -1,6 +1,6 @@
 {
   "stream_response": false,
-  "tts": "none",
+  "tts": "cloud",
   "voice": "shimmer",
   "agent_path": "agents/standard.json",
   "chat_model": "gpt-4-turbo-preview",

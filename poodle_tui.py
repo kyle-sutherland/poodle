@@ -418,8 +418,8 @@ class PoodleTui(App):
         return w
 
     def isSpeak(self):
-        if self.config.tts.lower() != "cloud" or self.config.tts.lower() != "local":
-            return False
+        # if self.config.tts.lower() != "cloud" or self.config.tts.lower() != "local":
+        #     return False
         return True
 
     def watch_emote(self):
@@ -437,12 +437,6 @@ class PoodleTui(App):
 
     @work(exclusive=True)
     async def print_response(self, content: str) -> None:
-        if content.startswith("@"):
-            content = content.lstrip("@")
-            c = content.partition("@")
-            content = c[2]
-            if c[0].isdigit():
-                self.emote = int(c[0])
         self.status["replying"].display = False
         content_wrapped = "\n".join(
             textwrap.wrap(
@@ -478,6 +472,12 @@ class PoodleTui(App):
     async def handle_response(self, resp):
         tts_thread = None
         content = self.chat_utils.handle_response(resp, self.chat_session)
+        if content.startswith("@"):
+            content = content.lstrip("@")
+            c = content.partition("@")
+            content = c[2]
+            if c[0].isdigit():
+                self.emote = int(c[0])
         if self.isSpeak():
             tts_thread = self.vui.speak_response(content)
             tts_thread.start()
