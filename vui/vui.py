@@ -60,20 +60,19 @@ class Vui:
             config=self.config,
         )
 
-    def pl_no_speech(self, partial_result):
-        pr = json.loads(partial_result)
-        if ef.recording.is_set():
-            if self.silence_watcher.check_silence(pr):
-                ef.silence.set()
-                timestamp = FileManager.get_datetime_string()
-                self.audio_recorder.stop_recording(
-                    f"{self.config.path_prompt_bodies_audio}body_{timestamp}.wav"
-                )
-                self.silence_watcher.reset()
+    # def pl_no_speech(self, partial_result):
+    #     pr = json.loads(partial_result)
+    #     if ef.recording.is_set():
+    #         if self.silence_watcher.check_silence(pr):
+    #             ef.silence.set()
+    #             timestamp = FileManager.get_datetime_string()
+    #             self.audio_recorder.stop_recording(
+    #                 f"{self.config.path_prompt_bodies_audio}body_{timestamp}.wav"
+    #             )
+    #             self.process_transcriptions()
+    #             self.silence_watcher.reset()
 
     def initialize_kw_detector(self):
-        self.detector.add_partial_listener(self.pl_no_speech)
-
         for pl in self.partial_listeners:
             self.detector.add_partial_listener(pl)
 
@@ -89,11 +88,6 @@ class Vui:
             self.transcriptions = list(
                 FileManager.read_transcriptions(self.config.transcription_path)
             )
-
-    def transcription_control(self) -> list:
-        if ef.silence.is_set() and not ef.recording.is_set():
-            self.process_transcriptions()
-            return chat_utils.extract_trans_text(self.transcriptions)
 
     def start_recording(self, stream_write_time=0):
         self.audio_recorder.start_recording()
