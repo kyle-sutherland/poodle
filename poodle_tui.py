@@ -3,6 +3,7 @@ import textwrap
 from typing import cast
 import json
 import time
+from openai.types.chat import ChatCompletion
 
 import pyfiglet
 from rich.console import RenderableType

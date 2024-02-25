@@ -34,6 +34,11 @@
     "limit_thresh": 0.4,
     "token_limit": 128000
   },
+  "gpt-4-turbo-preview": {
+    "name": "gpt-4-turbo-preview",
+    "limit_thresh": 0.4,
+    "token_limit": 128000
+  },
   "gpt-4-32k": {
     "name": "gpt-4-32k",
     "limit_thresh": 0.4,
