@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import event_flags as ef
 import gc
 import config
+from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT
 
 console = Console()
 
@@ -301,4 +302,54 @@ class ChatSession:
             console.print(f"{e}")
 
         console.print("\nSummary complete\n")
-        # console.print(f"\n{self.messages}")
+
+
+class ClaudeChatSession(ChatSession):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+
+    async def send_chat_request(self):
+        messages = self.messages.get_messages()
+        prompt = ""
+        for message in messages:
+            if message["role"] == "user":
+                prompt += f"{HUMAN_PROMPT} {message['content']}"
+            elif message["role"] == "assistant":
+                prompt += f"{AI_PROMPT} {message['content']}"
+
+        try:
+            response = self.client.completions.create(
+                model=self.model,
+                prompt=prompt,
+                max_tokens_to_sample=300,
+                temperature=self.temperature,
+            )
+            return self._convert_to_chat_completion(response)
+        except Exception as e:
+            logging.error(f"Error sending request to Claude API: {e}")
+            return self.error_completion
+
+    def _convert_to_chat_completion(self, claude_response):
+        # Convert Claude's response format to match OpenAI's ChatCompletion
+        return ChatCompletion(
+            id=claude_response.id,
+            choices=[
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": claude_response.completion,
+                    },
+                    "finish_reason": "stop",
+                }
+            ],
+            created=int(time.time()),
+            model=self.model,
+            object="chat.completion",
+            usage={
+                "prompt_tokens": claude_response.prompt_tokens,
+                "completion_tokens": claude_response.completion_tokens,
+                "total_tokens": claude_response.prompt_tokens
+                + claude_response.completion_tokens,
+            },
+        )

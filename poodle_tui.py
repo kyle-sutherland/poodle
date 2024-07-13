@@ -10,7 +10,7 @@ from rich.highlighter import ReprHighlighter
 from rich.progress import BarColumn, Progress
 from rich.spinner import Spinner
 from rich.text import Text
-from richpixels import Pixels
+from rich_pixels import Pixels
 from textual import work
 from textual import on
 from textual.app import App, ComposeResult
@@ -268,8 +268,9 @@ class PoodleTui(App):
     async def on_load(self):
         self.config.load_configurations()
         self.poodle = Poodle(self.config)
+        self.poodle.load_core()
         self.poodle.run()
-        self.chat_session = self.poodle.get_session()
+        self.chat_session = self.poodle.get_session(0)
         self.chat_utils = self.poodle.chat_utils
         self.kw_listeners = [
             self.kwl_print_keyword_message,

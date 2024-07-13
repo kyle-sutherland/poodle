@@ -49,7 +49,7 @@ class KeywordDetector(threading.Thread):
         self.keyword = self.config.keyword
         self.vosk = vosk
         self.vosk.SetLogLevel(-1)
-        self.model = vosk.Model(lang=v_lang_dict[self.config.__getattribute__("lang")])
+        self.model = vosk.Model(lang=v_lang_dict[self.config.lang])
         self.audio_queue = queue.Queue()
         self.keyword_listeners = []
         self.partial_listeners = []
@@ -142,13 +142,13 @@ class AudioQueueFetcher(threading.Thread):
 
 
 class Transcriber:
-    def __init__(self, audio_directory, transcription_directory, config: Configurator):
+    def __init__(self, config: Configurator):
         self.config = config
         self.audio_directory = self.config.path_prompt_bodies_audio
         self.transcription_directory = self.config.transcription_path
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = self.config.local_transcriber_model
-        self.mod = whisper.load_model(self.model, self.device)
+        self.mod = whisper.load_model(name=self.model, device=self.device)
 
     @yaspin(text="Transcribing...", color="yellow")
     def transcribe_bodies(self):
@@ -307,7 +307,10 @@ class TextToSpeech:
 
 class TextToSpeechLocal:
     def __init__(self):
-        self.synthesiser = pipeline("text-to-speech", model="microsoft/speecht5_tts")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.synthesiser = pipeline(
+            "text-to-speech", model="microsoft/speecht5_tts", device=self.device
+        )
         embeddings_dataset = load_dataset(
             "Matthijs/cmu-arctic-xvectors", split="validation"
         )

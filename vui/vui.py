@@ -56,8 +56,6 @@ class Vui:
                 self.config.path_prompt_bodies_audio, self.config.transcription_path
             )
         return Transcriber(
-            self.config.path_prompt_bodies_audio,
-            self.config.transcription_path,
             config=self.config,
         )
 
