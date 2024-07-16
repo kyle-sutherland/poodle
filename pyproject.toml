@@ -5,6 +5,7 @@ description = "A tui for chatGPT"
 authors = ["Kyle Sutherland"]
 license = "gpl"
 readme = "README.md"
+packages = [{include = "poodle"}]
 
 [tool.poetry.dependencies]
 python = ">=3.11, <3.12"

@@ -23,10 +23,10 @@ from pydub.playback import play
 from transformers import pipeline
 
 # Local Modules
-from config import Configurator
-import event_flags as ef
+from poodle.config import Configurator
+import poodle.event_flags as ef
 import whisper
-from core.file_manager import FileManager
+from poodle.core.file_manager import FileManager
 import soundfile
 
 
@@ -36,7 +36,7 @@ async def playMp3Sound(file):
     sound_thread.start()
 
 
-v_lang_dict = FileManager.read_json("./vosk_langs.json")
+v_lang_dict = FileManager.read_json("poodle/vosk_langs.json")
 
 
 class KeywordDetector(threading.Thread):

@@ -1,10 +1,10 @@
 import threading
 import json
-from config import Configurator
+from poodle.config import Configurator
 import warnings
 
 
-from vui.audio_utils import (
+from poodle.vui.audio_utils import (
     KeywordDetector,
     Transcriber,
     OnlineTranscriber,
@@ -13,8 +13,8 @@ from vui.audio_utils import (
     TextToSpeechLocal,
     SilenceWatcher,
 )
-import event_flags as ef
-from core.file_manager import FileManager
+import poodle.event_flags as ef
+from poodle.core.file_manager import FileManager
 
 
 class Vui:

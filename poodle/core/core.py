@@ -1,11 +1,11 @@
 # app.py
 import json
 import logging
-from config import Configurator
-import core.chat_utils
-from core.chat_utils import ChatSession
-from core.chat_utils import ClaudeChatSession
-from core.file_manager import FileManager
+from poodle.config import Configurator
+import poodle.core.chat_utils
+from poodle.core.chat_utils import ChatSession
+from poodle.core.chat_utils import ClaudeChatSession
+from poodle.core.file_manager import FileManager
 
 
 class Poodle:
@@ -14,7 +14,7 @@ class Poodle:
         # Initialize other attributes as needed.
         self.keyword_detector = None
         self.convo = None
-        self.chat_utils = core.chat_utils
+        self.chat_utils = poodle.core.chat_utils
         self.prompt_jo: dict = FileManager.read_json(
             self.config.__getattribute__("agent_path")
         )
@@ -54,7 +54,7 @@ class Poodle:
         self.chat_sessions.append(chat_session)
 
     def load_core(self):
-        self.chat_models = FileManager.read_json("core/models.json")
+        self.chat_models = FileManager.read_json("poodle/core/models.json")
         models = self.chat_models
         self.model = models[self.config.chat_model]
         self.init_chat_session(self.model)

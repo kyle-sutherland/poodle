@@ -1,0 +1,10 @@
+{
+  "enable_print_prompt": false,
+  "enable_performance_log": true,
+  "enable_all_partial_result_log": false,
+  "enable_active_speech_log": false,
+  "path_prompt_bodies_audio": "poodle/vui/prompt_bodies_audio/",
+  "transcription_path": "poodle/vui/body_transcriptions/",
+  "conversations_path": "poodle/core/conversations/",
+  "response_log_path": "poodle/core/response_log/"
+}

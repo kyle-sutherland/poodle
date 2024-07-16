@@ -2,7 +2,7 @@
   "stream_response": false,
   "tts": "none",
   "voice": "shimmer",
-  "agent_path": "agents/standard.json",
+  "agent_path": "poodle/agents/standard.json",
   "chat_model": "gpt-4-1106-preview",
   "local_transcriber_model": "base",
   "lang": "english-us",

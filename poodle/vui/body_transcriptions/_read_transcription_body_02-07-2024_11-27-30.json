@@ -1,0 +1,25 @@
+{
+    "text": " You hear me?",
+    "segments": [
+        {
+            "id": 0,
+            "seek": 0,
+            "start": 0.0,
+            "end": 0.5,
+            "text": " You hear me?",
+            "tokens": [
+                50364,
+                509,
+                1568,
+                385,
+                30,
+                50389
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.6901369094848633,
+            "compression_ratio": 0.6,
+            "no_speech_prob": 0.38400784134864807
+        }
+    ],
+    "language": "en"
+}

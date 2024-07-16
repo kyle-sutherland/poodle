@@ -49,9 +49,9 @@ class Configurator:
                 )
 
     def load_configurations(self, *json_paths):
-        self.update_from_json("core/app_config.json")
-        self.update_from_json("core/audio_config.json")
-        self.update_from_json("core/chat_config.json")
+        self.update_from_json("poodle/core/app_config.json")
+        self.update_from_json("poodle/core/audio_config.json")
+        self.update_from_json("poodle/core/chat_config.json")
         for path in json_paths:
             self.update_from_json(path)
 

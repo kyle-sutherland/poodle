@@ -6,16 +6,17 @@ from time import sleep
 from rich.console import Console
 from rich import print
 from dataclasses import dataclass
-import event_flags as ef
+import poodle.event_flags as ef
 import gc
-import config
+import poodle.config
 from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT
+import time
 
 console = Console()
 
 from openai import OpenAI
 from openai.types.chat import ChatCompletion, chat_completion_chunk
-from core.file_manager import FileManager
+from poodle.core.file_manager import FileManager
 
 
 def handle_response(resp, chat):
@@ -58,7 +59,7 @@ def sim_typing_output(text: str, delay: float = 0.01):
 
 
 def get_vosk_languages() -> dict:
-    return FileManager.read_json("./models.json")
+    return FileManager.read_json("poodle/core/models.json")
 
 
 def chat_completion_to_dict(response: ChatCompletion) -> dict:

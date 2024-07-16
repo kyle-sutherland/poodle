@@ -30,12 +30,12 @@ from textual.widgets import (
 )
 from textual.widget import Widget
 
-from config import Configurator
-from core.core import Poodle
-from core.file_manager import FileManager
-import event_flags as ef
-from vui.audio_utils import playMp3Sound
-from vui.vui import Vui
+from poodle.config import Configurator
+from poodle.core.core import Poodle
+from poodle.core.file_manager import FileManager
+import poodle.event_flags as ef
+from poodle.vui.audio_utils import playMp3Sound
+from poodle.vui.vui import Vui
 
 
 class IntervalUpdater(Static):
@@ -252,18 +252,18 @@ class PoodleTui(App):
     ]
 
     images = [
-        Pixels.from_image_path("images/glyphs0.png"),
-        Pixels.from_image_path("images/glyphs1.png"),
-        Pixels.from_image_path("images/glyphs2.png"),
-        Pixels.from_image_path("images/glyphs3.png"),
-        Pixels.from_image_path("images/glyphs4.png"),
-        Pixels.from_image_path("images/glyphs5.png"),
-        Pixels.from_image_path("images/glyphs6.png"),
+        Pixels.from_image_path("poodle/images/glyphs0.png"),
+        Pixels.from_image_path("poodle/images/glyphs1.png"),
+        Pixels.from_image_path("poodle/images/glyphs2.png"),
+        Pixels.from_image_path("poodle/images/glyphs3.png"),
+        Pixels.from_image_path("poodle/images/glyphs4.png"),
+        Pixels.from_image_path("poodle/images/glyphs5.png"),
+        Pixels.from_image_path("poodle/images/glyphs6.png"),
     ]
 
     config = Configurator()
-    whisper_info: dict = FileManager.read_json("whisper.json")
-    chat_models: dict = FileManager.read_json("core/models.json")
+    whisper_info: dict = FileManager.read_json("poodle/whisper.json")
+    chat_models: dict = FileManager.read_json("poodle/core/models.json")
 
     async def on_load(self):
         self.config.load_configurations()
@@ -293,7 +293,7 @@ class PoodleTui(App):
             self.status[status].display = False
         if self.config.sounds:
             # notification-sound-7062.mp3
-            self.run_worker(playMp3Sound("sounds/ready.mp3"))
+            self.run_worker(playMp3Sound("poodle/sounds/ready.mp3"))
         self.query_one("#chat_view").mount(Message(self.welcome()))
 
     # 0: neutral, 1:confused, 2:excited, 3:happy, 4:love, 5:angry, 6:dead.
@@ -510,7 +510,7 @@ class PoodleTui(App):
             trans_text = self.chat_utils.extract_trans_text(transcriptions)
             if len(trans_text) == 0:
                 if self.config.sounds:
-                    self.run_worker(playMp3Sound("sounds/badcopy.mp3"))
+                    self.run_worker(playMp3Sound("poodle/sounds/badcopy.mp3"))
                 self.query_one("#chat_view").mount(
                     Message(
                         content=" I didn't hear you",
@@ -521,7 +521,7 @@ class PoodleTui(App):
                 ef.silence.clear()
                 return  # Exit the function early if there's no transcription
             if self.config.sounds:
-                self.run_worker(playMp3Sound("sounds/listening.mp3"))
+                self.run_worker(playMp3Sound("poodle/sounds/listening.mp3"))
             wrapped_text = "\n".join(
                 textwrap.wrap(trans_text[0], width=self.wrap_width)
             )
@@ -555,7 +555,7 @@ class PoodleTui(App):
             )
         )
         if self.config.sounds:
-            self.run_worker(playMp3Sound("sounds/listening.mp3"))
+            self.run_worker(playMp3Sound("poodle/sounds/listening.mp3"))
         if self.config.tts.lower() == "cloud":
             if self.tts.is_audio_playing():
                 self.tts.stop_audio()
@@ -657,7 +657,7 @@ class PoodleTui(App):
             )
         )
         if self.config.sounds:
-            self.run_worker(playMp3Sound("sounds/listening.mp3"))
+            self.run_worker(playMp3Sound("poodle/sounds/listening.mp3"))
         if self.config.tts.lower() == "cloud":
             if self.tts.is_audio_playing():
                 self.tts.stop_audio()

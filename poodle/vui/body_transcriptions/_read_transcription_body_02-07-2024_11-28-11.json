@@ -1,0 +1,24 @@
+{
+    "text": " You understand?",
+    "segments": [
+        {
+            "id": 0,
+            "seek": 0,
+            "start": 0.0,
+            "end": 1.0,
+            "text": " You understand?",
+            "tokens": [
+                50364,
+                509,
+                1223,
+                30,
+                50414
+            ],
+            "temperature": 0.0,
+            "avg_logprob": -0.799538771311442,
+            "compression_ratio": 0.6521739130434783,
+            "no_speech_prob": 0.3269466161727905
+        }
+    ],
+    "language": "en"
+}
